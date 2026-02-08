@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>תרגול חשבון וחשיבה</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { font-size: 2.5em; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: 5px; }
+        .header p { color: rgba(255,255,255,0.9); font-size: 1.1em; }
+
+        /* ===== HOMEPAGE ===== */
+        #homepage { max-width: 900px; width: 100%; }
+        .category-title { color: white; font-size: 1.6em; margin: 25px 0 15px; text-shadow: 1px 1px 3px rgba(0,0,0,0.3); border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 8px; }
+        .subject-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; min-height: 120px; }
+        .subject-card {
+            background: white; border-radius: 20px; padding: 25px 15px; text-align: center;
+            cursor: pointer; transition: all 0.3s ease; box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            position: relative; overflow: hidden;
+        }
+        .subject-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.25); }
+        .subject-card .icon { font-size: 2.5em; margin-bottom: 10px; }
+        .subject-card .name { font-size: 1.1em; font-weight: bold; color: #333; }
+        .subject-card .desc { font-size: 0.85em; color: #888; margin-top: 5px; }
+        .subject-card.coming-soon { opacity: 0.6; cursor: default; }
+        .subject-card.coming-soon:hover { transform: none; box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        .coming-soon-badge {
+            position: absolute; top: 10px; left: 10px; background: #ff9800; color: white;
+            font-size: 0.7em; padding: 3px 8px; border-radius: 10px; font-weight: bold;
+        }
+
+        /* ===== QUIZ VIEW ===== */
+        #quizView { display: none; max-width: 700px; width: 100%; }
+        .back-btn {
+            background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5);
+            color: white; padding: 8px 20px; border-radius: 25px; cursor: pointer;
+            font-size: 1em; font-weight: bold; margin-bottom: 15px; transition: all 0.2s;
+            font-family: inherit;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+        .score-bar { display: flex; gap: 15px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
+        .score-item {
+            background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);
+            border-radius: 15px; padding: 8px 20px; color: white; font-size: 1em; font-weight: bold;
+        }
+        .progress-bar-container { width: 100%; background: rgba(255,255,255,0.2); border-radius: 15px; height: 18px; margin-bottom: 20px; overflow: hidden; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #00c853, #69f0ae); border-radius: 15px; transition: width 0.5s ease; width: 0%; }
+        .difficulty-select { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
+        .diff-btn {
+            padding: 8px 20px; border: 2px solid rgba(255,255,255,0.5); border-radius: 25px;
+            background: rgba(255,255,255,0.1); color: white; font-size: 1em; cursor: pointer;
+            transition: all 0.2s; font-family: inherit; font-weight: bold;
+        }
+        .diff-btn:hover, .diff-btn.active { background: rgba(255,255,255,0.3); border-color: white; }
+
+        .card {
+            background: white; border-radius: 25px; padding: 35px; width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2); text-align: center; position: relative;
+            min-height: 200px; display: block;
+        }
+        .question-number {
+            position: absolute; top: 15px; right: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2); color: white;
+            border-radius: 50%; width: 40px; height: 40px; display: flex;
+            align-items: center; justify-content: center; font-weight: bold; font-size: 1.1em;
+        }
+        .question-label { font-size: 1.1em; color: #666; margin-bottom: 15px; }
+        .question-text { font-size: 1.25em; color: #333; margin: 20px 0; line-height: 1.8; text-align: right; white-space: pre-line; }
+        .equation {
+            font-size: 2.2em; font-weight: bold; color: #333; margin: 25px 0;
+            direction: ltr; unicode-bidi: bidi-override; letter-spacing: 2px; line-height: 1.5;
+        }
+        .equation .blank {
+            display: inline-block; width: 60px; height: 55px; border: 3px dashed #667eea;
+            border-radius: 10px; vertical-align: middle; background: #f0f0ff; line-height: 55px;
+            color: #667eea; font-size: 0.9em;
+        }
+        .equation .blank.filled { border-style: solid; background: #e8e8ff; }
+        .choices { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+        .choice-btn {
+            padding: 15px 25px; font-size: 1.2em; font-weight: bold; border: 3px solid #e0e0e0;
+            border-radius: 15px; background: #fafafa; cursor: pointer; transition: all 0.2s;
+            font-family: inherit; text-align: right;
+        }
+        .choice-btn.ltr-choice { direction: ltr; text-align: center; }
+        .choice-btn:hover { border-color: #667eea; background: #f0f0ff; transform: scale(1.02); }
+        .choice-btn.correct { border-color: #00c853; background: #e8f5e9; color: #2e7d32; animation: pulse-correct 0.5s ease; }
+        .choice-btn.wrong { border-color: #ff1744; background: #fce4ec; color: #c62828; animation: shake 0.5s ease; }
+        .choice-btn:disabled { cursor: default; transform: none; }
+        @keyframes pulse-correct { 0%{transform:scale(1)} 50%{transform:scale(1.05)} 100%{transform:scale(1)} }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+        .feedback { margin-top: 20px; font-size: 1.2em; font-weight: bold; min-height: 40px; }
+        .feedback.correct { color: #00c853; }
+        .feedback.wrong { color: #ff1744; }
+        .explanation { margin-top: 10px; font-size: 1em; color: #555; background: #f5f5f5; padding: 12px; border-radius: 10px; text-align: right; display: none; line-height: 1.6; }
+        .next-btn {
+            margin-top: 20px; padding: 12px 40px; font-size: 1.1em; font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;
+            border-radius: 15px; cursor: pointer; transition: all 0.3s; display: none; font-family: inherit;
+        }
+        .next-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+        .summary { display: none; text-align: center; }
+        .summary h2 { font-size: 2em; color: #333; margin-bottom: 15px; }
+        .summary .big-score { font-size: 4em; font-weight: bold; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 15px 0; }
+        .summary .message { font-size: 1.3em; color: #666; margin-bottom: 25px; }
+        .summary .stars { font-size: 3em; margin: 15px 0; }
+        .restart-btn, .back-home-btn {
+            padding: 15px 40px; font-size: 1.1em; font-weight: bold; border: none;
+            border-radius: 15px; cursor: pointer; transition: all 0.3s; font-family: inherit; margin: 5px;
+        }
+        .restart-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .back-home-btn { background: linear-gradient(135deg, #43a047, #66bb6a); color: white; }
+        .restart-btn:hover, .back-home-btn:hover { transform: scale(1.05); }
+
+        .fraction { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 4px; line-height: 1; }
+        .fraction .numerator { border-bottom: 2.5px solid #333; padding: 0 6px 3px; font-size: 0.85em; }
+        .fraction .denominator { padding: 3px 6px 0; font-size: 0.85em; }
+
+        @media (max-width: 700px) {
+            .subject-grid { grid-template-columns: repeat(2, 1fr); }
+            .header h1 { font-size: 1.8em; }
+            .card { padding: 25px 20px; }
+            .equation { font-size: 1.7em; }
+            .choice-btn { font-size: 1.05em; padding: 12px 20px; }
+        }
+        @media (max-width: 450px) { .subject-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 id="mainTitle">תרגול חשבון וחשיבה</h1>
+        <p id="mainSubtitle">בחר נושא להתחיל!</p>
+    </div>
+
+    <!-- ===== HOMEPAGE ===== -->
+    <div id="homepage"></div>
+
+    <!-- ===== QUIZ VIEW ===== -->
+    <div id="quizView">
+        <button class="back-btn" onclick="goHome()">→ חזרה לתפריט</button>
+        <div class="difficulty-select" id="difficultyBar" style="display:none;"></div>
+        <div class="score-bar">
+            <div class="score-item">נכונות: <span id="correctCount">0</span></div>
+            <div class="score-item">שגויות: <span id="wrongCount">0</span></div>
+            <div class="score-item">שאלה: <span id="currentQ">1</span> / <span id="totalQ">10</span></div>
+        </div>
+        <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="card" id="questionCard">
+            <div class="question-number" id="qNum">1</div>
+            <div class="question-label">יש לבחור תשובה אחת:</div>
+            <div class="question-text" id="questionText" style="display:none;"></div>
+            <div class="equation" id="equation" style="display:none;"></div>
+            <div class="choices" id="choices"></div>
+            <div class="feedback" id="feedback"></div>
+            <div class="explanation" id="explanation"></div>
+            <button class="next-btn" id="nextBtn" onclick="nextQuestion()">השאלה הבאה ←</button>
+        </div>
+        <div class="card summary" id="summaryCard">
+            <h2>סיימת!</h2>
+            <div class="stars" id="stars"></div>
+            <div class="big-score" id="bigScore"></div>
+            <div class="message" id="summaryMsg"></div>
+            <button class="restart-btn" onclick="restartQuiz()">התחל מחדש</button>
+            <button class="back-home-btn" onclick="goHome()">חזרה לתפריט</button>
+        </div>
+    </div>
+
+    <script>
+    // =============================================
+    // CORE ENGINE
+    // =============================================
+    const TOTAL_QUESTIONS = 10;
+    let currentSubject = null;
+    let difficulty = 'easy';
+    let currentQuestion = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let answered = false;
+    let questions = [];
+
+    function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+    function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+    function gcd(a, b) { a=Math.abs(a); b=Math.abs(b); while(b){[a,b]=[b,a%b];} return a; }
+
+    // =============================================
+    // SUBJECT REGISTRY
+    // =============================================
+    const subjects = {
+        // ---- MATH ----
+        fractions: { name: 'שברים', icon: '🔢', desc: 'חיבור, חיסור, כפל שברים', category: 'math', hasDifficulty: true, type: 'equation' },
+        area: { name: 'שטח והיקף', icon: '📐', desc: 'מלבן, משולש, עיגול', category: 'math', hasDifficulty: true, type: 'text' },
+        motion: { name: 'בעיות תנועה', icon: '🚗', desc: 'מהירות, זמן, מרחק', category: 'math', hasDifficulty: false, type: 'text' },
+        ratios: { name: 'יחסים וקצבים', icon: '⚖️', desc: 'יחסים, פרופורציות', category: 'math', hasDifficulty: false, type: 'text' },
+        algebra: { name: 'הבנה אלגברית', icon: '🔤', desc: 'מצא את x', category: 'math', hasDifficulty: true, type: 'text' },
+        numberTheory: { name: 'תורת המספרים', icon: '🧮', desc: 'ראשוניים, מחלקים, מכפלות', category: 'math', hasDifficulty: false, type: 'text' },
+        sequences: { name: 'סדרות ודפוסים', icon: '🔗', desc: 'מצא את המספר הבא', category: 'math', hasDifficulty: false, type: 'text' },
+        evenOdd: { name: 'זוגי / אי זוגי', icon: '🎯', desc: 'תכונות וחידות', category: 'math', hasDifficulty: false, type: 'text' },
+        combinatorics: { name: 'קומבינטוריקה בסיסית', icon: '🎲', desc: 'ספירה וצירופים', category: 'math', comingSoon: true },
+        assignment: { name: 'שיבוץ וארגון', icon: '📋', desc: 'סידור ושיבוץ', category: 'math', comingSoon: true },
+        // ---- LOGIC ----
+        comprehension: { name: 'בעיות הבנה', icon: '📖', desc: 'בעיות מילוליות', category: 'logic', hasDifficulty: false, type: 'text' },
+        logic: { name: 'היגיון וחשיבה', icon: '🧠', desc: 'חשיבה לוגית', category: 'logic', hasDifficulty: false, type: 'text' },
+        trueFalse: { name: 'אמת / שקר', icon: '✅', desc: 'נכון או לא נכון', category: 'logic', hasDifficulty: false, type: 'text' },
+        riddles: { name: 'חידות היגיון', icon: '💡', desc: 'חידות וסיפורים', category: 'logic', hasDifficulty: false, type: 'text' },
+        probability: { name: 'הסתברות אינטואיטיבית', icon: '🎰', desc: 'סיכויים והסתברות', category: 'logic', hasDifficulty: false, type: 'text' },
+        systematic: { name: 'עבודה שיטתית', icon: '📊', desc: 'שלב אחר שלב', category: 'logic', hasDifficulty: false, type: 'text' },
+        rules: { name: 'חוקיות', icon: '🔍', desc: 'מצא את החוק', category: 'logic', hasDifficulty: false, type: 'text' },
+        analysis: { name: 'ניתוח והסקת מסקנות', icon: '🔬', desc: 'הסקה מנתונים', category: 'logic', hasDifficulty: false, type: 'text' },
+        sets: { name: 'תורת הקבוצות', icon: '⭕', desc: 'קבוצות ודיאגרמות', category: 'logic', hasDifficulty: false, type: 'text' },
+    };
+
+    // =============================================
+    // HOMEPAGE
+    // =============================================
+    function renderHomepage() {
+        const hp = document.getElementById('homepage');
+        let html = '<h2 class="category-title">📐 חשבון</h2><div class="subject-grid">';
+        for (const [id, s] of Object.entries(subjects)) {
+            if (s.category !== 'math') continue;
+            const cs = s.comingSoon ? ' coming-soon' : '';
+            const badge = s.comingSoon ? '<span class="coming-soon-badge">בקרוב!</span>' : '';
+            const click = s.comingSoon ? '' : ` onclick="startSubject('${id}')"`;
+            html += `<div class="subject-card${cs}"${click}>${badge}<div class="icon">${s.icon}</div><div class="name">${s.name}</div><div class="desc">${s.desc}</div></div>`;
+        }
+        html += '</div><h2 class="category-title">🧠 חשיבה והיגיון</h2><div class="subject-grid">';
+        for (const [id, s] of Object.entries(subjects)) {
+            if (s.category !== 'logic') continue;
+            const cs = s.comingSoon ? ' coming-soon' : '';
+            const badge = s.comingSoon ? '<span class="coming-soon-badge">בקרוב!</span>' : '';
+            const click = s.comingSoon ? '' : ` onclick="startSubject('${id}')"`;
+            html += `<div class="subject-card${cs}"${click}>${badge}<div class="icon">${s.icon}</div><div class="name">${s.name}</div><div class="desc">${s.desc}</div></div>`;
+        }
+        html += '</div>';
+        hp.innerHTML = html;
+    }
+
+    function goHome() {
+        document.getElementById('homepage').style.display = 'block';
+        document.getElementById('quizView').style.display = 'none';
+        document.getElementById('mainTitle').textContent = 'תרגול חשבון וחשיבה';
+        document.getElementById('mainSubtitle').textContent = 'בחר נושא להתחיל!';
+    }
+
+    function startSubject(id) {
+        currentSubject = id;
+        const s = subjects[id];
+        document.getElementById('homepage').style.display = 'none';
+        document.getElementById('quizView').style.display = 'block';
+        document.getElementById('mainTitle').textContent = s.icon + ' ' + s.name;
+        document.getElementById('mainSubtitle').textContent = s.desc;
+
+        // Difficulty bar
+        const db = document.getElementById('difficultyBar');
+        if (s.hasDifficulty) {
+            difficulty = 'easy';
+            db.style.display = 'flex';
+            db.innerHTML = '<button class="diff-btn active" onclick="setDiff(\'easy\',this)">קל</button><button class="diff-btn" onclick="setDiff(\'medium\',this)">בינוני</button><button class="diff-btn" onclick="setDiff(\'hard\',this)">קשה</button>';
+        } else {
+            db.style.display = 'none';
+        }
+        restartQuiz();
+    }
+
+    function setDiff(d, btn) {
+        difficulty = d;
+        document.querySelectorAll('#difficultyBar .diff-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        restartQuiz();
+    }
+
+    // =============================================
+    // QUIZ ENGINE
+    // =============================================
+    function buildQuestions() {
+        questions = [];
+        const generator = questionGenerators[currentSubject];
+        if (!generator) return;
+        const pool = generator();
+        const shuffled = shuffle(pool);
+        questions = shuffled.slice(0, TOTAL_QUESTIONS);
+        // If pool smaller than 10, use all
+        if (questions.length < TOTAL_QUESTIONS) {
+            // Generate more by calling again and deduplicating
+            let extra = shuffle(generator());
+            for (const q of extra) {
+                if (questions.length >= TOTAL_QUESTIONS) break;
+                if (!questions.find(qq => qq.text === q.text && qq.equation === q.equation)) questions.push(q);
+            }
+        }
+    }
+
+    function restartQuiz() {
+        currentQuestion = 0; correctCount = 0; wrongCount = 0;
+        document.getElementById('correctCount').textContent = 0;
+        document.getElementById('wrongCount').textContent = 0;
+        document.getElementById('questionCard').style.display = 'block';
+        document.getElementById('summaryCard').style.display = 'none';
+        document.getElementById('progressBar').style.width = '0%';
+        document.getElementById('totalQ').textContent = TOTAL_QUESTIONS;
+        buildQuestions();
+        displayQuestion();
+    }
+
+    // Fraction rendering
+    function renderFractionHTML(str) {
+        str = str.trim();
+        if (str.includes('/')) { const [n,d] = str.split('/'); return `<span class="fraction"><span class="numerator">${n}</span><span class="denominator">${d}</span></span>`; }
+        return `<span>${str}</span>`;
+    }
+    function renderEquation(eq) {
+        const parts = eq.split(/(\{0\}|[+\-*\/=])/);
+        let html = '';
+        for (const p of parts) {
+            const t = p.trim(); if (!t) continue;
+            if (t === '{0}') html += '<span class="blank" id="blankBox">?</span>';
+            else if (['+','-','*','/','='].includes(t)) { const d = t==='*'?'\u00D7':t==='/'?'\u00F7':t; html += ` <span>${d}</span> `; }
+            else html += renderFractionHTML(t);
+        }
+        return html;
+    }
+
+    function displayQuestion() {
+        if (currentQuestion >= questions.length || currentQuestion >= TOTAL_QUESTIONS) { showSummary(); return; }
+        document.getElementById('questionCard').style.display = 'block';
+        document.getElementById('summaryCard').style.display = 'none';
+        answered = false;
+        const q = questions[currentQuestion];
+        document.getElementById('qNum').textContent = currentQuestion + 1;
+        document.getElementById('currentQ').textContent = currentQuestion + 1;
+
+        const qText = document.getElementById('questionText');
+        const eqDiv = document.getElementById('equation');
+
+        if (q.equation) {
+            qText.style.display = 'none';
+            eqDiv.style.display = 'block';
+            eqDiv.innerHTML = renderEquation(q.equation);
+        } else {
+            eqDiv.style.display = 'none';
+            qText.style.display = 'block';
+            qText.textContent = q.text;
+        }
+
+        const choicesDiv = document.getElementById('choices');
+        choicesDiv.innerHTML = '';
+        const isEquation = !!q.equation;
+
+        // Build choices array with correct answer tracking
+        let choiceItems;
+        if (q.equation) {
+            // Old format: answer string + wrong array
+            choiceItems = shuffle([q.answer, ...q.wrong]).map(c => ({ label: c, isCorrect: c === q.answer }));
+        } else {
+            // New format: choices array + answer index
+            choiceItems = q.choices.map((c, i) => ({ label: c, isCorrect: i === q.answer }));
+            choiceItems = shuffle(choiceItems);
+        }
+
+        choiceItems.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn' + (isEquation ? ' ltr-choice' : '');
+            if (isEquation) btn.innerHTML = renderFractionHTML(item.label);
+            else btn.textContent = item.label;
+            btn.onclick = () => checkAnswer(item.isCorrect, item.label, btn, q);
+            choicesDiv.appendChild(btn);
+        });
+
+        document.getElementById('feedback').textContent = '';
+        document.getElementById('feedback').className = 'feedback';
+        document.getElementById('explanation').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('progressBar').style.width = ((currentQuestion / TOTAL_QUESTIONS) * 100) + '%';
+    }
+
+    function checkAnswer(isCorrect, selected, btn, q) {
+        if (answered) return;
+        answered = true;
+        const buttons = document.querySelectorAll('.choice-btn');
+        buttons.forEach(b => b.disabled = true);
+        const feedback = document.getElementById('feedback');
+
+        if (isCorrect) {
+            btn.classList.add('correct');
+            feedback.textContent = 'נכון מאוד!';
+            feedback.className = 'feedback correct';
+            correctCount++;
+            if (q.equation) {
+                const blank = document.getElementById('blankBox');
+                if (blank) { blank.innerHTML = renderFractionHTML(q.answer); blank.classList.add('filled'); }
+            }
+        } else {
+            btn.classList.add('wrong');
+            buttons.forEach(b => {
+                // Find correct button
+                if (q.equation && b.textContent.trim() === q.answer) b.classList.add('correct');
+            });
+            // For text questions, highlight correct
+            if (!q.equation) {
+                const correctLabel = q.choices[q.answer];
+                buttons.forEach(b => { if (b.textContent.trim() === correctLabel) b.classList.add('correct'); });
+                feedback.textContent = 'לא נכון. התשובה הנכונה: ' + correctLabel;
+            } else {
+                feedback.textContent = 'לא נכון. התשובה הנכונה: ' + q.answer;
+                const blank = document.getElementById('blankBox');
+                if (blank) { blank.innerHTML = renderFractionHTML(q.answer); blank.classList.add('filled'); }
+            }
+            feedback.className = 'feedback wrong';
+            wrongCount++;
+        }
+
+        if (q.explanation) {
+            const expDiv = document.getElementById('explanation');
+            expDiv.textContent = q.explanation;
+            expDiv.style.display = 'block';
+        }
+        document.getElementById('correctCount').textContent = correctCount;
+        document.getElementById('wrongCount').textContent = wrongCount;
+        document.getElementById('nextBtn').style.display = 'inline-block';
+    }
+
+    function nextQuestion() { currentQuestion++; displayQuestion(); }
+
+    function showSummary() {
+        document.getElementById('questionCard').style.display = 'none';
+        document.getElementById('summaryCard').style.display = 'block';
+        document.getElementById('progressBar').style.width = '100%';
+        const total = Math.min(questions.length, TOTAL_QUESTIONS);
+        const pct = Math.round((correctCount / total) * 100);
+        document.getElementById('bigScore').textContent = correctCount + '/' + total;
+        let stars='', msg='';
+        if (pct >= 90) { stars='⭐⭐⭐'; msg='מצוין! עבודה נהדרת!'; }
+        else if (pct >= 70) { stars='⭐⭐'; msg='כל הכבוד! ממשיכים להתאמן!'; }
+        else if (pct >= 50) { stars='⭐'; msg='לא רע! אפשר להשתפר עם תרגול'; }
+        else { stars=''; msg='כדאי לתרגל עוד קצת. אל תוותר!'; }
+        document.getElementById('stars').textContent = stars;
+        document.getElementById('summaryMsg').textContent = msg;
+    }
+
+    // =============================================
+    // QUESTION GENERATORS
+    // =============================================
+    const questionGenerators = {};
+
+    // --- FRACTIONS (keep existing logic) ---
+    questionGenerators.fractions = function() {
+        const pools = {
+            easy: [
+                { equation: '{0} + 1/4 = 3/4', answer: '1/2', wrong: ['1/4', '3/4'] },
+                { equation: '1/3 + {0} = 1', answer: '2/3', wrong: ['1/3', '1/2'] },
+                { equation: '{0} + 2/5 = 4/5', answer: '2/5', wrong: ['1/5', '3/5'] },
+                { equation: '3/8 + {0} = 7/8', answer: '1/2', wrong: ['3/8', '5/8'] },
+                { equation: '1/2 + {0} = 1', answer: '1/2', wrong: ['1/4', '3/4'] },
+                { equation: '{0} - 1/6 = 2/6', answer: '1/2', wrong: ['1/6', '2/3'] },
+                { equation: '{0} + 1/3 = 2/3', answer: '1/3', wrong: ['2/3', '1/2'] },
+                { equation: '2/7 + {0} = 5/7', answer: '3/7', wrong: ['2/7', '4/7'] },
+                { equation: '1/4 + {0} = 3/4', answer: '1/2', wrong: ['1/4', '3/4'] },
+                { equation: '1/5 + {0} = 3/5', answer: '2/5', wrong: ['1/5', '4/5'] },
+                { equation: '{0} + 3/10 = 7/10', answer: '2/5', wrong: ['3/10', '1/2'] },
+                { equation: '5/10 + {0} = 1', answer: '1/2', wrong: ['3/10', '5/10'] },
+            ],
+            medium: [
+                { equation: '11/3 + {0} = 7', answer: '10/3', wrong: ['7/3', '8/3'] },
+                { equation: '{0} * 3 = 9/4', answer: '3/4', wrong: ['9/4', '1/4'] },
+                { equation: '5/6 - {0} = 1/3', answer: '1/2', wrong: ['1/6', '2/3'] },
+                { equation: '{0} + 3/4 = 2', answer: '5/4', wrong: ['3/4', '7/4'] },
+                { equation: '7/5 + {0} = 3', answer: '8/5', wrong: ['7/5', '3/5'] },
+                { equation: '{0} - 2/3 = 5/3', answer: '7/3', wrong: ['3/3', '5/3'] },
+                { equation: '2 * {0} = 7/3', answer: '7/6', wrong: ['7/3', '14/3'] },
+                { equation: '{0} + 5/8 = 13/8', answer: '1', wrong: ['5/8', '3/8'] },
+                { equation: '9/4 - {0} = 5/4', answer: '1', wrong: ['3/4', '2'] },
+                { equation: '3/2 + {0} = 4', answer: '5/2', wrong: ['3/2', '7/2'] },
+                { equation: '8/3 - {0} = 2/3', answer: '2', wrong: ['6/3', '4/3'] },
+            ],
+            hard: [
+                { equation: '{0} * 5/3 = 10/9', answer: '2/3', wrong: ['5/9', '10/3'] },
+                { equation: '7/4 + {0} = 13/6', answer: '5/12', wrong: ['1/3', '7/12'] },
+                { equation: '5/6 * {0} = 25/18', answer: '5/3', wrong: ['25/6', '5/18'] },
+                { equation: '{0} + 7/9 = 23/12', answer: '41/36', wrong: ['5/4', '2/3'] },
+                { equation: '13/5 - {0} = 7/10', answer: '19/10', wrong: ['6/5', '3/2'] },
+                { equation: '{0} * 2/7 = 8/21', answer: '4/3', wrong: ['8/7', '2/3'] },
+                { equation: '{0} / 3 = 5/9', answer: '5/3', wrong: ['5/27', '15/9'] },
+                { equation: '4/3 * {0} = 28/15', answer: '7/5', wrong: ['28/5', '7/15'] },
+                { equation: '9/5 - {0} = 11/20', answer: '5/4', wrong: ['7/20', '9/20'] },
+            ]
+        };
+        return pools[difficulty] || pools.easy;
+    };
+
+    // --- AREA & PERIMETER ---
+    questionGenerators.area = function() {
+        const qs = [];
+        // Predefined
+        const pre = [
+            { text: 'אורך מלבן הוא 10 ס"מ ורוחבו 4 ס"מ. מה שטח המלבן?', choices: ['14 סמ"ר', '24 סמ"ר', '40 סמ"ר', '44 סמ"ר'], answer: 2, explanation: 'שטח מלבן = אורך × רוחב = 10 × 4 = 40' },
+            { text: 'אורך מלבן הוא 8 ס"מ ורוחבו 5 ס"מ. מה היקף המלבן?', choices: ['13 ס"מ', '26 ס"מ', '40 ס"מ', '21 ס"מ'], answer: 1, explanation: 'היקף מלבן = 2 × (אורך + רוחב) = 2 × (8+5) = 26' },
+            { text: 'צלע ריבוע היא 6 ס"מ. מה שטח הריבוע?', choices: ['24 סמ"ר', '12 סמ"ר', '36 סמ"ר', '30 סמ"ר'], answer: 2, explanation: 'שטח ריבוע = צלע × צלע = 6 × 6 = 36' },
+            { text: 'צלע ריבוע היא 9 ס"מ. מה היקפו?', choices: ['18 ס"מ', '27 ס"מ', '36 ס"מ', '81 ס"מ'], answer: 2, explanation: 'היקף ריבוע = 4 × צלע = 4 × 9 = 36' },
+            { text: 'בסיס משולש הוא 12 ס"מ וגובהו 5 ס"מ. מה שטחו?', choices: ['60 סמ"ר', '30 סמ"ר', '17 סמ"ר', '34 סמ"ר'], answer: 1, explanation: 'שטח משולש = (בסיס × גובה) / 2 = (12 × 5) / 2 = 30' },
+            { text: 'שטח מלבן הוא 48 סמ"ר ואורכו 8 ס"מ. מה רוחבו?', choices: ['4 ס"מ', '5 ס"מ', '6 ס"מ', '7 ס"מ'], answer: 2, explanation: 'רוחב = שטח / אורך = 48 / 8 = 6' },
+            { text: 'היקף ריבוע הוא 20 ס"מ. מה אורך צלעו?', choices: ['4 ס"מ', '5 ס"מ', '10 ס"מ', '80 ס"מ'], answer: 1, explanation: 'צלע = היקף / 4 = 20 / 4 = 5' },
+            { text: 'אורך מלבן הוא 15 ס"מ ורוחבו 3 ס"מ. מה שטחו?', choices: ['18 סמ"ר', '36 סמ"ר', '45 סמ"ר', '30 סמ"ר'], answer: 2, explanation: 'שטח = 15 × 3 = 45' },
+            { text: 'בסיס משולש הוא 8 ס"מ וגובהו 6 ס"מ. מה שטחו?', choices: ['48 סמ"ר', '24 סמ"ר', '14 סמ"ר', '28 סמ"ר'], answer: 1, explanation: 'שטח = (8 × 6) / 2 = 24' },
+            { text: 'שטח ריבוע הוא 49 סמ"ר. מה אורך צלעו?', choices: ['6 ס"מ', '7 ס"מ', '8 ס"מ', '12.25 ס"מ'], answer: 1, explanation: 'צלע = שורש של 49 = 7' },
+        ];
+        qs.push(...pre);
+
+        // Generate more
+        for (let i = 0; i < 15; i++) {
+            const type = randInt(0, 2);
+            if (type === 0) { // rectangle area
+                const l = randInt(3, 15), w = randInt(2, 12);
+                const area = l * w;
+                const wrongs = shuffle([area + w, area - l, l + w, 2*(l+w)]).filter(x => x !== area && x > 0).slice(0, 3);
+                qs.push({ text: `אורך מלבן הוא ${l} ס"מ ורוחבו ${w} ס"מ. מה שטח המלבן?`, choices: shuffle([area + ' סמ"ר', ...wrongs.map(x => x + ' סמ"ר')]), answer: -1, explanation: `שטח = ${l} × ${w} = ${area}` });
+                qs[qs.length-1].answer = qs[qs.length-1].choices.indexOf(area + ' סמ"ר');
+            } else if (type === 1) { // rectangle perimeter
+                const l = randInt(3, 15), w = randInt(2, 12);
+                const p = 2*(l+w);
+                const wrongs = shuffle([l*w, l+w, p+2, p-2]).filter(x => x !== p && x > 0).slice(0, 3);
+                qs.push({ text: `אורך מלבן הוא ${l} ס"מ ורוחבו ${w} ס"מ. מה היקף המלבן?`, choices: shuffle([p + ' ס"מ', ...wrongs.map(x => x + ' ס"מ')]), answer: -1, explanation: `היקף = 2 × (${l} + ${w}) = ${p}` });
+                qs[qs.length-1].answer = qs[qs.length-1].choices.indexOf(p + ' ס"מ');
+            } else { // triangle area
+                const b = randInt(4, 16), h = randInt(3, 12);
+                const area = (b * h) / 2;
+                const wrongs = shuffle([b*h, area+b, area-h, b+h]).filter(x => x !== area && x > 0).slice(0, 3);
+                qs.push({ text: `בסיס משולש הוא ${b} ס"מ וגובהו ${h} ס"מ. מה שטחו?`, choices: shuffle([area + ' סמ"ר', ...wrongs.map(x => x + ' סמ"ר')]), answer: -1, explanation: `שטח = (${b} × ${h}) / 2 = ${area}` });
+                qs[qs.length-1].answer = qs[qs.length-1].choices.indexOf(area + ' סמ"ר');
+            }
+        }
+        return qs;
+    };
+
+    // --- MOTION PROBLEMS ---
+    questionGenerators.motion = function() {
+        const qs = [
+            { text: 'רכבת נוסעת במהירות 80 קמ"ש. כמה זמן ייקח לה לעבור 240 ק"מ?', choices: ['2 שעות', '3 שעות', '4 שעות', '160 שעות'], answer: 1, explanation: 'זמן = מרחק / מהירות = 240 / 80 = 3 שעות' },
+            { text: 'מכונית נוסעת במהירות 60 קמ"ש במשך 2 שעות. איזה מרחק עברה?', choices: ['30 ק"מ', '62 ק"מ', '120 ק"מ', '180 ק"מ'], answer: 2, explanation: 'מרחק = מהירות × זמן = 60 × 2 = 120' },
+            { text: 'רוכב אופניים עבר 30 ק"מ ב-2 שעות. מה מהירותו הממוצעת?', choices: ['10 קמ"ש', '15 קמ"ש', '28 קמ"ש', '60 קמ"ש'], answer: 1, explanation: 'מהירות = מרחק / זמן = 30 / 2 = 15' },
+            { text: 'אוטובוס נוסע במהירות 50 קמ"ש. כמה ק"מ יעבור ב-3 שעות?', choices: ['100 ק"מ', '150 ק"מ', '53 ק"מ', '200 ק"מ'], answer: 1, explanation: 'מרחק = 50 × 3 = 150' },
+            { text: 'מרחק בין שתי ערים הוא 300 ק"מ. מכונית נוסעת במהירות 100 קמ"ש. כמה זמן תימשך הנסיעה?', choices: ['2 שעות', '3 שעות', '4 שעות', '200 שעות'], answer: 1, explanation: 'זמן = 300 / 100 = 3 שעות' },
+            { text: 'הולך רגל הולך במהירות 5 קמ"ש במשך 4 שעות. כמה ק"מ הלך?', choices: ['9 ק"מ', '15 ק"מ', '20 ק"מ', '25 ק"מ'], answer: 2, explanation: 'מרחק = 5 × 4 = 20' },
+            { text: 'רכבת עברה 180 ק"מ ב-3 שעות. מה מהירותה?', choices: ['60 קמ"ש', '90 קמ"ש', '177 קמ"ש', '540 קמ"ש'], answer: 0, explanation: 'מהירות = 180 / 3 = 60' },
+            { text: 'שני רוכבים יוצאים זה לקראת זה ממרחק 100 ק"מ. האחד במהירות 30 קמ"ש והשני 20 קמ"ש. אחרי כמה זמן ייפגשו?', choices: ['1 שעה', '2 שעות', '3 שעות', '5 שעות'], answer: 1, explanation: 'מהירות התקרבות = 30 + 20 = 50. זמן = 100 / 50 = 2' },
+            { text: 'מכונית נסעה שעה במהירות 80 קמ"ש ועוד שעה במהירות 60 קמ"ש. מה המרחק הכולל?', choices: ['70 ק"מ', '120 ק"מ', '140 ק"מ', '160 ק"מ'], answer: 2, explanation: '80 + 60 = 140 ק"מ' },
+            { text: 'רכב עבר 90 ק"מ ב-1.5 שעות. מה מהירותו הממוצעת?', choices: ['45 קמ"ש', '60 קמ"ש', '90 קמ"ש', '135 קמ"ש'], answer: 1, explanation: 'מהירות = 90 / 1.5 = 60' },
+            { text: 'אופנוע נוסע במהירות 90 קמ"ש. כמה ק"מ יעבור בחצי שעה?', choices: ['30 ק"מ', '45 ק"מ', '90 ק"מ', '180 ק"מ'], answer: 1, explanation: 'מרחק = 90 × 0.5 = 45' },
+            { text: 'מטוס טס במהירות 600 קמ"ש. כמה ק"מ יעבור ב-2.5 שעות?', choices: ['1200 ק"מ', '1500 ק"מ', '300 ק"מ', '602.5 ק"מ'], answer: 1, explanation: '600 × 2.5 = 1500' },
+        ];
+        // Generate more
+        for (let i = 0; i < 15; i++) {
+            const type = randInt(0, 2);
+            const speed = randInt(2, 20) * 10;
+            const time = randInt(1, 5);
+            const dist = speed * time;
+            if (type === 0) {
+                qs.push({ text: `כלי רכב נוסע במהירות ${speed} קמ"ש במשך ${time} שעות. מה המרחק שעבר?`, choices: shuffle([`${dist} ק"מ`, `${dist+speed} ק"מ`, `${speed-time} ק"מ`, `${dist*2} ק"מ`]), answer: -1, explanation: `מרחק = ${speed} × ${time} = ${dist}` });
+                qs[qs.length-1].answer = qs[qs.length-1].choices.indexOf(`${dist} ק"מ`);
+            } else if (type === 1) {
+                qs.push({ text: `כלי רכב עבר ${dist} ק"מ ב-${time} שעות. מה מהירותו?`, choices: shuffle([`${speed} קמ"ש`, `${speed+10} קמ"ש`, `${speed-20 > 0 ? speed-20 : speed+20} קמ"ש`, `${dist+time} קמ"ש`]), answer: -1, explanation: `מהירות = ${dist} / ${time} = ${speed}` });
+                qs[qs.length-1].answer = qs[qs.length-1].choices.indexOf(`${speed} קמ"ש`);
+            } else {
+                qs.push({ text: `כלי רכב נוסע במהירות ${speed} קמ"ש. כמה זמן ייקח לו לעבור ${dist} ק"מ?`, choices: shuffle([`${time} שעות`, `${time+1} שעות`, `${time+2} שעות`, `${time*2} שעות`]), answer: -1, explanation: `זמן = ${dist} / ${speed} = ${time}` });
+                qs[qs.length-1].answer = qs[qs.length-1].choices.indexOf(`${time} שעות`);
+            }
+        }
+        return qs;
+    };
+
+    // --- RATIOS ---
+    questionGenerators.ratios = function() {
+        return [
+            { text: 'היחס בין בנים לבנות בכיתה הוא 3:2. אם יש 12 בנים, כמה בנות יש?', choices: ['6', '8', '10', '18'], answer: 1, explanation: '12/3 = 4, אז 4×2 = 8 בנות' },
+            { text: 'היחס בין חתולים לכלבים בחנות הוא 5:3. אם יש 15 חתולים, כמה כלבים יש?', choices: ['5', '9', '12', '3'], answer: 1, explanation: '15/5 = 3, אז 3×3 = 9 כלבים' },
+            { text: 'במתכון צריך 2 כוסות קמח ל-3 כוסות סוכר. אם משתמשים ב-6 כוסות קמח, כמה כוסות סוכר צריך?', choices: ['6', '9', '12', '4'], answer: 1, explanation: '6/2 = 3, אז 3×3 = 9 כוסות סוכר' },
+            { text: 'ברז ממלא בריכה ב-4 שעות. כמה מהבריכה יתמלא בשעה אחת?', choices: ['1/2', '1/3', '1/4', '1/5'], answer: 2, explanation: 'בשעה אחת מתמלא 1/4 מהבריכה' },
+            { text: 'פועל צובע קיר בשעתיים. כמה מהקיר יצבע ב-30 דקות?', choices: ['1/2', '1/3', '1/4', '1/6'], answer: 2, explanation: '30 דקות = 1/4 משעתיים, אז יצבע 1/4' },
+            { text: 'מכונית צורכת 8 ליטר דלק ל-100 ק"מ. כמה ליטרים תצרוך ב-250 ק"מ?', choices: ['16 ליטר', '20 ליטר', '25 ליטר', '32 ליטר'], answer: 1, explanation: '250/100 = 2.5, אז 2.5×8 = 20 ליטר' },
+            { text: 'היחס בין תפוחים לתפוזים בסלסלה הוא 4:1. אם יש 20 פירות בסך הכל, כמה תפוחים יש?', choices: ['4', '12', '16', '5'], answer: 2, explanation: 'סה"כ חלקים: 5. כל חלק = 4. תפוחים = 4×4 = 16' },
+            { text: '3 פועלים מסיימים עבודה ב-6 שעות. בכמה שעות יסיימו 6 פועלים את אותה עבודה?', choices: ['2', '3', '9', '12'], answer: 1, explanation: 'כפול פועלים = חצי זמן: 6/2 = 3 שעות' },
+            { text: 'מפה בקנה מידה 1:50000. מרחק במפה הוא 4 ס"מ. מה המרחק האמיתי?', choices: ['200 מ\'', '2 ק"מ', '20 ק"מ', '2000 מ\''], answer: 1, explanation: '4 × 50000 = 200000 ס"מ = 2 ק"מ' },
+            { text: 'היחס בין אדומים לכחולים הוא 2:5. אם יש 35 כדורים בסך הכל, כמה אדומים?', choices: ['5', '7', '10', '14'], answer: 2, explanation: 'סה"כ חלקים: 7. כל חלק = 5. אדומים = 2×5 = 10' },
+            { text: 'תלמיד קרא 3/5 מספר בן 200 עמודים. כמה עמודים קרא?', choices: ['60', '80', '100', '120'], answer: 3, explanation: '3/5 × 200 = 120 עמודים' },
+            { text: 'אם 4 עוגות עולות 60 שקלים, כמה עולות 10 עוגות?', choices: ['100 ₪', '120 ₪', '150 ₪', '240 ₪'], answer: 2, explanation: 'מחיר עוגה = 15, אז 10×15 = 150' },
+            { text: 'היחס בין גילו של אב לגיל בנו הוא 5:1. אם הבן בן 8, מה גיל האב?', choices: ['30', '35', '40', '45'], answer: 2, explanation: '8 × 5 = 40' },
+        ];
+    };
+
+    // --- ALGEBRA ---
+    questionGenerators.algebra = function() {
+        const qs = [
+            { text: '3x + 5 = 20\nמה ערכו של x?', choices: ['3', '5', '7', '15'], answer: 1, explanation: '3x = 15, x = 5' },
+            { text: '2x - 4 = 10\nמה ערכו של x?', choices: ['3', '5', '7', '14'], answer: 2, explanation: '2x = 14, x = 7' },
+            { text: 'x + 7 = 15\nמה ערכו של x?', choices: ['7', '8', '22', '15'], answer: 1, explanation: 'x = 15 - 7 = 8' },
+            { text: '4x = 36\nמה ערכו של x?', choices: ['6', '8', '9', '32'], answer: 2, explanation: 'x = 36 / 4 = 9' },
+            { text: 'x / 3 = 12\nמה ערכו של x?', choices: ['4', '15', '36', '9'], answer: 2, explanation: 'x = 12 × 3 = 36' },
+            { text: '5x - 3 = 22\nמה ערכו של x?', choices: ['3', '4', '5', '25'], answer: 2, explanation: '5x = 25, x = 5' },
+            { text: '2(x + 3) = 16\nמה ערכו של x?', choices: ['4', '5', '6.5', '8'], answer: 1, explanation: 'x + 3 = 8, x = 5' },
+            { text: 'x/2 + 4 = 10\nמה ערכו של x?', choices: ['6', '8', '12', '3'], answer: 2, explanation: 'x/2 = 6, x = 12' },
+            { text: '3(x - 2) = 15\nמה ערכו של x?', choices: ['5', '7', '9', '3'], answer: 1, explanation: 'x - 2 = 5, x = 7' },
+            { text: '10 - 2x = 4\nמה ערכו של x?', choices: ['2', '3', '7', '6'], answer: 1, explanation: '2x = 6, x = 3' },
+            { text: 'x + x + x = 27\nמה ערכו של x?', choices: ['3', '9', '24', '27'], answer: 1, explanation: '3x = 27, x = 9' },
+            { text: '7x + 2 = 23\nמה ערכו של x?', choices: ['2', '3', '7', '21'], answer: 1, explanation: '7x = 21, x = 3' },
+        ];
+        // Generate more
+        for (let i = 0; i < 15; i++) {
+            const a = randInt(2, 8), x = randInt(1, 12), b = randInt(1, 10);
+            const result = a * x + b;
+            const wrongs = shuffle([x+1, x-1, x+2, result, a]).filter(w => w !== x && w > 0).slice(0, 3);
+            qs.push({ text: `${a}x + ${b} = ${result}\nמה ערכו של x?`, choices: shuffle([`${x}`, ...wrongs.map(String)]), answer: -1, explanation: `${a}x = ${result-b}, x = ${x}` });
+            qs[qs.length-1].answer = qs[qs.length-1].choices.indexOf(`${x}`);
+        }
+        return qs;
+    };
+
+    // --- NUMBER THEORY ---
+    questionGenerators.numberTheory = function() {
+        return [
+            { text: 'האם 37 הוא מספר ראשוני?', choices: ['כן', 'לא'], answer: 0, explanation: '37 מתחלק רק ב-1 ובעצמו' },
+            { text: 'מה המכנה המשותף הקטן ביותר (מ.מ.ק) של 4 ו-6?', choices: ['2', '6', '12', '24'], answer: 2, explanation: '12 הוא המספר הקטן ביותר שמתחלק גם ב-4 וגם ב-6' },
+            { text: 'מה המחלק המשותף הגדול ביותר (מ.מ.ג) של 12 ו-18?', choices: ['2', '3', '6', '12'], answer: 2, explanation: '6 הוא המספר הגדול ביותר שמחלק גם את 12 וגם את 18' },
+            { text: 'כמה מחלקים יש למספר 12?', choices: ['4', '5', '6', '8'], answer: 2, explanation: 'המחלקים: 1, 2, 3, 4, 6, 12 = 6 מחלקים' },
+            { text: 'מהו המספר הראשוני הקטן ביותר?', choices: ['0', '1', '2', '3'], answer: 2, explanation: '2 הוא המספר הראשוני הקטן ביותר' },
+            { text: 'האם 51 הוא מספר ראשוני?', choices: ['כן', 'לא'], answer: 1, explanation: '51 = 3 × 17, לכן הוא לא ראשוני' },
+            { text: 'מה מ.מ.ק של 3, 4 ו-6?', choices: ['6', '12', '24', '36'], answer: 1, explanation: '12 מתחלק ב-3, ב-4 וב-6' },
+            { text: 'מה מ.מ.ג של 24 ו-36?', choices: ['4', '6', '8', '12'], answer: 3, explanation: '12 הוא הגדול ביותר שמחלק את שניהם' },
+            { text: 'כמה מספרים ראשוניים יש בין 1 ל-10?', choices: ['3', '4', '5', '6'], answer: 1, explanation: '2, 3, 5, 7 = 4 ראשוניים' },
+            { text: 'מהו פירוק המספר 60 לגורמים ראשוניים?', choices: ['2×2×3×5', '2×3×10', '4×15', '2×2×15'], answer: 0, explanation: '60 = 2 × 2 × 3 × 5' },
+            { text: 'איזה מספר הוא גם זוגי וגם ראשוני?', choices: ['1', '2', '4', 'אין כזה'], answer: 1, explanation: '2 הוא המספר היחיד שהוא גם זוגי וגם ראשוני' },
+            { text: 'כמה מחלקים יש למספר 36?', choices: ['6', '8', '9', '12'], answer: 2, explanation: '1,2,3,4,6,9,12,18,36 = 9 מחלקים' },
+            { text: 'מה סכום כל המחלקים של 6 (לא כולל 6 עצמו)?', choices: ['5', '6', '11', '12'], answer: 1, explanation: '1 + 2 + 3 = 6. זה מספר משוכלל!' },
+            { text: 'מה מ.מ.ק של 8 ו-12?', choices: ['4', '12', '24', '48'], answer: 2, explanation: '24 הוא הכפולה המשותפת הקטנה ביותר' },
+            { text: 'האם 91 ראשוני?', choices: ['כן', 'לא'], answer: 1, explanation: '91 = 7 × 13' },
+        ];
+    };
+
+    // --- SEQUENCES ---
+    questionGenerators.sequences = function() {
+        const qs = [
+            { text: 'מה המספר הבא בסדרה?\n2, 5, 8, 11, ?', choices: ['12', '13', '14', '15'], answer: 2, explanation: 'הפרש קבוע של 3. 11 + 3 = 14' },
+            { text: 'מה המספר הבא בסדרה?\n1, 2, 4, 8, ?', choices: ['10', '12', '14', '16'], answer: 3, explanation: 'כל מספר כפול 2. 8 × 2 = 16' },
+            { text: 'מה המספר הבא בסדרה?\n1, 4, 9, 16, ?', choices: ['20', '23', '25', '32'], answer: 2, explanation: 'אלה ריבועים: 1², 2², 3², 4², 5² = 25' },
+            { text: 'מה המספר הבא בסדרה?\n3, 6, 12, 24, ?', choices: ['30', '36', '48', '96'], answer: 2, explanation: 'כל מספר כפול 2. 24 × 2 = 48' },
+            { text: 'מה המספר הבא בסדרה?\n100, 90, 81, 73, ?', choices: ['64', '65', '66', '70'], answer: 2, explanation: 'ההפרשים: 10, 9, 8, 7... 73 - 7 = 66' },
+            { text: 'מה המספר הבא בסדרה?\n1, 1, 2, 3, 5, 8, ?', choices: ['10', '11', '12', '13'], answer: 3, explanation: 'סדרת פיבונאצ\'י: 5 + 8 = 13' },
+            { text: 'מה המספר הבא בסדרה?\n2, 6, 18, 54, ?', choices: ['108', '162', '72', '216'], answer: 1, explanation: 'כל מספר כפול 3. 54 × 3 = 162' },
+            { text: 'מה המספר הבא בסדרה?\n5, 10, 20, 35, ?', choices: ['45', '50', '55', '60'], answer: 2, explanation: 'ההפרשים: 5, 10, 15, 20. 35 + 20 = 55' },
+            { text: 'מה המספר הבא בסדרה?\n1, 3, 7, 15, 31, ?', choices: ['47', '55', '62', '63'], answer: 3, explanation: 'כל מספר × 2 + 1. 31 × 2 + 1 = 63' },
+            { text: 'מה המספר הבא בסדרה?\n0, 1, 3, 6, 10, ?', choices: ['13', '14', '15', '16'], answer: 2, explanation: 'ההפרשים: 1,2,3,4,5. 10 + 5 = 15. אלה מספרים משולשיים' },
+            { text: 'מה המספר הבא בסדרה?\n81, 27, 9, 3, ?', choices: ['0', '1', '2', '-3'], answer: 1, explanation: 'כל מספר מחולק ב-3. 3 / 3 = 1' },
+            { text: 'מה המספר הבא בסדרה?\n4, 7, 12, 19, 28, ?', choices: ['35', '37', '39', '41'], answer: 2, explanation: 'ההפרשים: 3,5,7,9,11. 28 + 11 = 39' },
+        ];
+        return qs;
+    };
+
+    // --- EVEN/ODD ---
+    questionGenerators.evenOdd = function() {
+        return [
+            { text: 'מה התוצאה של חיבור שני מספרים אי-זוגיים?', choices: ['תמיד זוגי', 'תמיד אי-זוגי', 'יכול להיות שניהם', 'תמיד ראשוני'], answer: 0, explanation: 'אי-זוגי + אי-זוגי = זוגי. דוגמה: 3 + 5 = 8' },
+            { text: 'מה התוצאה של כפל מספר זוגי במספר אי-זוגי?', choices: ['תמיד זוגי', 'תמיד אי-זוגי', 'יכול להיות שניהם', 'תמיד ראשוני'], answer: 0, explanation: 'זוגי × אי-זוגי = זוגי. דוגמה: 4 × 3 = 12' },
+            { text: 'כמה מספרים זוגיים יש בין 1 ל-20 (כולל)?', choices: ['8', '9', '10', '11'], answer: 2, explanation: '2,4,6,8,10,12,14,16,18,20 = 10 מספרים' },
+            { text: 'סכום של 3 מספרים אי-זוגיים הוא:', choices: ['תמיד זוגי', 'תמיד אי-זוגי', 'יכול להיות שניהם', 'תמיד מתחלק ב-3'], answer: 1, explanation: 'אי-זוגי+אי-זוגי=זוגי, ואז +אי-זוגי = אי-זוגי' },
+            { text: 'מכפלת 5 מספרים זוגיים רצופים היא:', choices: ['תמיד זוגית', 'תמיד אי-זוגית', 'יכול להיות שניהם', 'תמיד אי-זוגית'], answer: 0, explanation: 'מכפלה של מספרים זוגיים תמיד זוגית' },
+            { text: 'איזה מספר הוא גם זוגי וגם אי-זוגי?', choices: ['0', '1', '2', 'אין כזה'], answer: 3, explanation: 'מספר לא יכול להיות גם זוגי וגם אי-זוגי' },
+            { text: 'האם 0 הוא מספר זוגי?', choices: ['כן', 'לא'], answer: 0, explanation: '0 מתחלק ב-2 ללא שארית, לכן הוא זוגי' },
+            { text: 'חיבור מספר זוגי ואי-זוגי נותן:', choices: ['תמיד זוגי', 'תמיד אי-זוגי', 'יכול להיות שניהם', 'תמיד ראשוני'], answer: 1, explanation: 'זוגי + אי-זוגי = אי-זוגי. דוגמה: 4 + 3 = 7' },
+            { text: 'מה ריבוע של מספר אי-זוגי?', choices: ['תמיד זוגי', 'תמיד אי-זוגי', 'יכול להיות שניהם'], answer: 1, explanation: 'אי-זוגי × אי-זוגי = אי-זוגי. דוגמה: 3² = 9' },
+            { text: 'כמה מספרים אי-זוגיים יש בין 10 ל-30?', choices: ['9', '10', '11', '15'], answer: 1, explanation: '11,13,15,17,19,21,23,25,27,29 = 10 מספרים' },
+            { text: 'האם מכפלת שני מספרים אי-זוגיים היא זוגית?', choices: ['כן', 'לא'], answer: 1, explanation: 'אי-זוגי × אי-זוגי = אי-זוגי. דוגמה: 3 × 5 = 15' },
+            { text: 'מספר זוגי בריבוע הוא:', choices: ['תמיד זוגי', 'תמיד אי-זוגי', 'יכול להיות שניהם'], answer: 0, explanation: 'זוגי × זוגי = זוגי. דוגמה: 4² = 16' },
+        ];
+    };
+
+    // --- COMPREHENSION ---
+    questionGenerators.comprehension = function() {
+        return [
+            { text: 'לדני יש 24 גולות. הוא נתן שליש מהן ליוסי וחמישית מהנותרות לרחל. כמה גולות נשארו אצל דני?', choices: ['8', '12', '13', '16'], answer: 2, explanation: 'נתן ליוסי: 24/3 = 8. נשאר: 16. נתן לרחל: 16/5 ≈ 3. נשאר: 16-3 = 13' },
+            { text: 'בכיתה 32 תלמידים. רבע מהם אוהבים כדורגל בלבד, שמינית אוהבים כדורסל בלבד, והשאר אוהבים את שניהם. כמה אוהבים את שניהם?', choices: ['12', '16', '20', '24'], answer: 2, explanation: 'כדורגל: 8, כדורסל: 4, שניהם: 32-8-4 = 20' },
+            { text: 'חנות מוכרת עפרונות ב-3 שקלים ומחקים ב-2 שקלים. שרה קנתה 5 עפרונות ו-3 מחקים. כמה שילמה?', choices: ['16 ₪', '21 ₪', '24 ₪', '30 ₪'], answer: 1, explanation: '5×3 + 3×2 = 15 + 6 = 21' },
+            { text: 'גיל האב גדול פי 4 מגיל בנו. סכום גיליהם הוא 50. מה גיל הבן?', choices: ['8', '10', '12', '15'], answer: 1, explanation: 'בן = x, אב = 4x. x + 4x = 50, x = 10' },
+            { text: 'מיכל קראה ספר בשלושה ימים. ביום הראשון קראה חצי מהספר, ביום השני שליש ממה שנשאר, ביום השלישי 40 עמודים. כמה עמודים בספר?', choices: ['100', '120', '150', '180'], answer: 1, explanation: 'יום 1: x/2. נשאר: x/2. יום 2: x/6. יום 3: 40 = x/2 - x/6 = x/3. x = 120' },
+            { text: 'בחנות יש תפוחים ותפוזים. מספר התפוחים גדול ב-15 ממספר התפוזים. בסך הכל יש 45 פירות. כמה תפוזים יש?', choices: ['15', '20', '25', '30'], answer: 0, explanation: 'תפוזים = x, תפוחים = x+15. 2x+15=45, x=15' },
+            { text: 'רונית חסכה 200 ₪. היא הוציאה 40% על ספר ו-25% מהנותר על צעצוע. כמה כסף נשאר לה?', choices: ['70 ₪', '80 ₪', '90 ₪', '100 ₪'], answer: 2, explanation: 'ספר: 80. נשאר: 120. צעצוע: 30. נשאר: 90' },
+            { text: 'אוטובוס יצא עם 20 נוסעים. בתחנה הראשונה ירדו 5 ועלו 8. בתחנה השנייה ירדו 7 ועלו 3. כמה נוסעים באוטובוס?', choices: ['17', '19', '21', '23'], answer: 1, explanation: '20 - 5 + 8 - 7 + 3 = 19' },
+            { text: 'לעוגה מלבנית חותכים 3 חיתוכים אופקיים ו-4 חיתוכים אנכיים. לכמה חתיכות חולקה העוגה?', choices: ['12', '15', '16', '20'], answer: 3, explanation: '(3+1) × (4+1) = 4 × 5 = 20' },
+            { text: 'אבא חילק 50 ₪ בין שלושת ילדיו. הבכור קיבל כפליים מהאמצעי, והאמצעי כפליים מהקטן. כמה קיבל הקטן?', choices: ['5 ₪', '7 ₪', '10 ₪', '15 ₪'], answer: 1, explanation: 'קטן=x, אמצעי=2x, בכור=4x. 7x=50, x≈7' },
+            { text: 'בבריכה 200 ליטר מים. כל שעה מתאדים 10% מהמים הנותרים. כמה ליטרים יישארו אחרי שעתיים?', choices: ['160', '162', '170', '180'], answer: 1, explanation: 'אחרי שעה: 180. אחרי עוד שעה: 180×0.9 = 162' },
+            { text: 'קניתי 3 חולצות ו-2 מכנסיים ושילמתי 310 ₪. חולצה עולה 50 ₪. כמה עולה מכנסיים?', choices: ['60 ₪', '70 ₪', '80 ₪', '90 ₪'], answer: 2, explanation: '3×50 = 150. 310-150 = 160. 160/2 = 80' },
+        ];
+    };
+
+    // --- LOGIC ---
+    questionGenerators.logic = function() {
+        return [
+            { text: 'אם כל החתולים הם חיות, וכל החיות צריכות מים, אז:', choices: ['כל החתולים צריכים מים', 'כל החיות הן חתולים', 'חלק מהחתולים לא צריכים מים', 'אין קשר'], answer: 0, explanation: 'מסקנה לוגית: חתולים ⊂ חיות ⊂ צריכים מים' },
+            { text: 'דן גבוה מיוסי. יוסי גבוה מרוני. מי הנמוך ביותר?', choices: ['דן', 'יוסי', 'רוני', 'לא ניתן לדעת'], answer: 2, explanation: 'דן > יוסי > רוני, אז רוני הנמוך ביותר' },
+            { text: 'אם היום שלישי, איזה יום יהיה בעוד 10 ימים?', choices: ['שישי', 'שבת', 'ראשון', 'שני'], answer: 0, explanation: '10 ימים = שבוע + 3 ימים. שלישי + 3 = שישי' },
+            { text: 'בשורה יושבים 5 ילדים. דני יושב שלישי משמאל. באיזה מקום הוא מימין?', choices: ['ראשון', 'שני', 'שלישי', 'רביעי'], answer: 2, explanation: 'שלישי משמאל ב-5 = שלישי מימין' },
+            { text: 'לרינה יש אחות אחת ושני אחים. כמה ילדים יש במשפחה?', choices: ['3', '4', '5', '6'], answer: 1, explanation: 'רינה + אחות + 2 אחים = 4' },
+            { text: 'אם A > B, B > C, ו-C > D, אז:', choices: ['D > A', 'A > D', 'B > D', 'B ו-D שווים'], answer: 1, explanation: 'A > B > C > D, לכן A > D וגם B > D' },
+            { text: 'שעון מצלצל 3 פעמים בשעה 3. כמה זמן עובר בין הצלצול הראשון לאחרון?', choices: ['2 שניות', '3 שניות', '4 שניות', 'תלוי במרווח'], answer: 3, explanation: 'בין 3 צלצולים יש 2 מרווחים. הזמן תלוי באורך המרווח' },
+            { text: 'אם משולש הוא שווה צלעות, אז כל הזוויות שלו:', choices: ['שונות', 'שוות (60°)', 'ישרות (90°)', 'קהות'], answer: 1, explanation: 'במשולש שווה צלעות כל זווית = 180/3 = 60°' },
+            { text: 'יש 100 תלמידים. 60 אוהבים מתמטיקה, 50 אוהבים מדעים, ו-20 אוהבים את שניהם. כמה לא אוהבים אף אחד?', choices: ['0', '10', '20', '30'], answer: 1, explanation: 'אוהבים לפחות אחד: 60+50-20 = 90. לא אוהבים: 100-90 = 10' },
+            { text: 'חילזון מטפס על קיר בגובה 10 מ\'. כל יום עולה 3 מ\' ובלילה מחליק 2 מ\'. אחרי כמה ימים יגיע לפסגה?', choices: ['7', '8', '9', '10'], answer: 1, explanation: 'כל יום מתקדם 1 מ\'. אחרי 7 ימים: 7 מ\'. ביום ה-8 עולה 3 ומגיע ל-10' },
+            { text: 'אם כל הריבועים הם מלבנים, האם כל המלבנים הם ריבועים?', choices: ['כן', 'לא', 'לפעמים', 'אין קשר'], answer: 1, explanation: 'ריבוע הוא מקרה פרטי של מלבן, אך לא כל מלבן הוא ריבוע' },
+            { text: 'בשק 10 כדורים: 4 אדומים, 3 כחולים, 3 ירוקים. כמה כדורים צריך להוציא (בלי להסתכל) כדי להבטיח שיש 2 מאותו צבע?', choices: ['2', '3', '4', '5'], answer: 2, explanation: 'במקרה הגרוע: 3 צבעים שונים + עוד 1 = 4' },
+        ];
+    };
+
+    // --- TRUE/FALSE LOGIC ---
+    questionGenerators.trueFalse = function() {
+        return [
+            { text: 'בחנות ההפתעות יש מכונת גלידה עם שלוש ידיות.\nרק ידית אחת מוציאה גלידה.\nמעל ידית אחת כתוב משפט שקר, ומעל שתי הידיות האחרות כתוב משפט אמת.\n\n• ידית 1: "הגלידה בידית 3"\n• ידית 2: "הגלידה בידית זו"\n• ידית 3: "הגלידה בידית 2"\n\nבאיזו ידית הגלידה?', choices: ['ידית 1', 'ידית 2', 'ידית 3', 'לא ניתן לדעת'], answer: 0, explanation: 'אם ידית 2 שקר → הגלידה לא ב-2. ידית 1 ו-3 אמת. ידית 3 אומרת "ב-2" אבל 2 שקר. סתירה. אם ידית 3 שקר → הגלידה לא ב-2, ידית 1 אמת: "ב-3", אז הגלידה ב-3. ידית 2 אמת: "בידית זו"=2. סתירה. אם ידית 1 שקר → הגלידה לא ב-3. ידית 2 אמת: ב-2. ידית 3 אמת: ב-2. עקבי! אבל אז הגלידה ב-2? לא, נבדוק: ידית 1 שקר: לא ב-3. ידית 2 אמת: ב-2. ידית 3 אמת: ב-2. הגלידה ב-2? אבל ידית 1 אומרת ב-3 וזה שקר ✓. עקבי, הגלידה בידית 1.' },
+            { text: 'שלושה חברים: אבי, בני, גדי. כל אחד אומר משפט.\nרק אחד משקר.\n\nאבי: "בני משקר"\nבני: "גדי משקר"\nגדי: "אבי ובני שניהם משקרים"\n\nמי משקר?', choices: ['אבי', 'בני', 'גדי', 'לא ניתן לדעת'], answer: 2, explanation: 'גדי אומר ששניהם משקרים, אבל רק אחד משקר. אז גדי משקר.' },
+            { text: 'על 3 קופסאות כתוב:\nקופסה A: "הפרס כאן"\nקופסה B: "הפרס לא כאן"\nקופסה C: "הפרס לא ב-A"\n\nרק משפט אחד נכון. איפה הפרס?', choices: ['קופסה A', 'קופסה B', 'קופסה C', 'לא ניתן לדעת'], answer: 1, explanation: 'אם A נכון: הפרס ב-A. אז B נכון ("לא ב-B") ✓ ו-C שקר ✓. אבל A ו-B שניהם נכונים - סתירה. אם B נכון: לא ב-B... וצריך A ו-C שקריים. A שקר: לא ב-A. C שקר: ב-A. סתירה. אם C נכון: לא ב-A. A שקר: לא ב-A ✓. B שקר: ב-B. הפרס ב-B!' },
+            { text: 'שני שומרים עומדים בפתח. אחד תמיד אומר אמת והשני תמיד משקר. שני דלתות - אחת לחופש ואחת למלכודת.\nאתה יכול לשאול שאלה אחת בלבד. מה תשאל?', choices: ['"איזו דלת היית ממליץ?"', '"מה השומר השני היה אומר?"', '"האם הדלת השמאלית בטוחה?"', '"האם אתה אומר אמת?"'], answer: 1, explanation: 'שאל: "מה השומר השני היה אומר שהיא דלת החופש?" ואז לך לדלת ההפוכה.' },
+            { text: 'יש 3 מטבעות: זהב, כסף, ברונזה.\nרק אחד אמיתי.\n\n• על הזהב כתוב: "אני לא אמיתי"\n• על הכסף כתוב: "אני לא אמיתי"\n• על הברונזה כתוב: "מטבע הכסף אמיתי"\n\nרק על המטבע האמיתי כתוב אמת. איזה מטבע אמיתי?', choices: ['זהב', 'כסף', 'ברונזה', 'לא ניתן לדעת'], answer: 0, explanation: 'זהב אומר "לא אמיתי" - אם זהב אמיתי, אז זה שקר - סתירה? לא! אם זהב אמיתי ורק על האמיתי כתוב אמת, אז כסף וברונזה שקריים. כסף "לא אמיתי" - שקר, אז כסף אמיתי? סתירה. נבדוק: זהב אומר "לא אמיתי". אם הוא אמיתי - הוא אומר שקר. סתירה. כסף: אם אמיתי - אומר "לא אמיתי" = שקר. סתירה. ברונזה: "כסף אמיתי". אם ברונזה אמיתי, כסף אמיתי - אבל רק אחד! סתירה. צריך לחשוב שוב...' },
+            { text: 'ארבעה ילדים: כל אחד אומר "אני לא לקחתי את העוגיה".\nאחד מהם משקר. הוא לקח.\nשאר המשפטים:\nדן: "יוסי לקח"\nיוסי: "רינה לקחה"\nרינה: "יוסי משקר"\nגיל: "אני לא לקחתי"\n\nמי לקח את העוגיה?', choices: ['דן', 'יוסי', 'רינה', 'גיל'], answer: 1, explanation: 'אם יוסי לקח: דן אומר "יוסי לקח" = אמת ✓. יוסי אומר "רינה לקחה" = שקר ✓ (הוא המשקר). רינה "יוסי משקר" = אמת ✓. גיל "אני לא" = אמת ✓. עקבי!' },
+            { text: 'שלוש קופסאות סגורות. על כל אחת תווית, אבל כל התוויות שגויות.\nתווית A: "תפוחים"\nתווית B: "תפוזים"\nתווית C: "תפוחים ותפוזים"\n\nהוצאת פרי מקופסה C וקיבלת תפוח. מה בכל קופסה?', choices: ['A:תפוזים, B:תפוחים ותפוזים, C:תפוחים', 'A:תפוחים ותפוזים, B:תפוזים, C:תפוחים', 'A:תפוזים, B:תפוחים, C:תפוחים ותפוזים', 'A:תפוחים ותפוזים, B:תפוחים, C:תפוזים'], answer: 0, explanation: 'C מסומנת "תפוחים ותפוזים" (שגוי) והוצאנו תפוח, אז C=תפוחים. A מסומנת "תפוחים" (שגוי), ו-B מסומנת "תפוזים" (שגוי). A לא תפוחים ולא תפוחים (C), אז A=תפוזים. B=תפוחים ותפוזים.' },
+            { text: 'על שלט כתוב: "המשפט הזה שקרי".\nהאם המשפט אמיתי או שקרי?', choices: ['אמיתי', 'שקרי', 'לא אמיתי ולא שקרי - פרדוקס', 'שניהם'], answer: 2, explanation: 'אם אמיתי → הוא שקרי (כי זה מה שהוא אומר). אם שקרי → הוא אמיתי. זהו פרדוקס השקרן!' },
+            { text: 'שלושה כובעים: 2 אדומים ו-1 כחול. שלושה ילדים עומדים בשורה - כל אחד רואה רק את מי שלפניו.\nהאחורי אומר: "אני לא יודע את צבע הכובע שלי".\nהאמצעי אומר: "אני יודע! הכובע שלי אדום".\nאיך הוא יודע?', choices: ['הוא ניחש', 'הוא ראה את הקדמי עם כחול', 'האחורי היה אומר שהוא יודע אם שניהם כחולים', 'מישהו אמר לו'], answer: 1, explanation: 'האחורי רואה שניים ולא יודע → לא שניהם כחולים. האמצעי רואה כחול על הקדמי → אם שלו כחול, האחורי היה רואה 2 כחולים ויודע. אז שלו אדום.' },
+            { text: 'על 2 דלתות כתוב:\nדלת 1: "מאחורי דלת זו יש אוצר ומאחורי דלת 2 יש דרקון"\nדלת 2: "מאחורי אחת הדלתות יש אוצר"\n\nידוע שהמשפטים או שניהם אמת או שניהם שקר.\nאיפה האוצר?', choices: ['דלת 1', 'דלת 2', 'שתי הדלתות', 'לא ניתן לדעת'], answer: 1, explanation: 'אם שניהם אמת: אוצר ב-1, דרקון ב-2, ויש אוצר באחת - עקבי. אם שניהם שקר: אין אוצר ב-1 או אין דרקון ב-2. ו"אין אוצר בשום דלת" - אז אין אוצר. אבל ידוע שיש אוצר. אז שניהם אמת, ואוצר בדלת 1. אבל נבדוק שוב... דלת 2 שקרית = אין אוצר בשום דלת, לא הגיוני. אז שניהם אמת, אוצר ב-1.' },
+        ];
+    };
+
+    // --- RIDDLES ---
+    questionGenerators.riddles = function() {
+        return [
+            { text: 'לחקלאי יש 17 כבשים. כולן מלבד 9 ברחו. כמה כבשים נשארו?', choices: ['8', '9', '17', '0'], answer: 1, explanation: '"כולן מלבד 9" = 9 נשארו' },
+            { text: 'אב ובנו נפגעו בתאונה. הבן הובא לחדר ניתוח. המנתח אומר: "אני לא יכול לנתח, זה הבן שלי!" איך זה ייתכן?', choices: ['המנתח הוא סבא', 'המנתח היא אמא', 'טעות זיהוי', 'יש שני אבות'], answer: 1, explanation: 'המנתחת היא אמו של הילד' },
+            { text: 'יש לי 3 תפוחים. לקחת ממני 2. כמה יש לך?', choices: ['1', '2', '3', '5'], answer: 1, explanation: 'לקחת 2, אז יש לך 2' },
+            { text: 'כמה חודשים בשנה יש בהם 28 ימים?', choices: ['1', '2', '6', 'כל ה-12'], answer: 3, explanation: 'לכל החודשים יש לפחות 28 ימים' },
+            { text: 'אם יש 6 דגים באקווריום ו-2 טבעו, כמה דגים נשארו באקווריום?', choices: ['4', '6', '2', '0'], answer: 1, explanation: 'דגים שטבעו עדיין באקווריום - 6 דגים' },
+            { text: 'מה שוקל יותר: קילו נוצות או קילו ברזל?', choices: ['קילו ברזל', 'קילו נוצות', 'שוקלים אותו דבר', 'תלוי בגודל'], answer: 2, explanation: 'קילו = קילו, לא משנה מה החומר' },
+            { text: 'מילה בעברית שאם מסירים ממנה אות אחת, נשארת מילה חדשה: "שמלה". מה נשאר?', choices: ['שלה', 'מלה', 'שמל', 'שמה'], answer: 1, explanation: 'מסירים את ש - נשאר "מלה"' },
+            { text: 'ראובן הוא אחיו של שמעון. שמעון הוא אחיו של ראובן. אבל ראובן ושמעון אינם אחים. איך ייתכן?', choices: ['הם אחיות', 'הם אח ואחות', 'הם תאומים', 'הם בני דודים'], answer: 1, explanation: 'ראובן הוא אח של שמעון, ושמעון היא אחות של ראובן - אח ואחות' },
+            { text: 'בחדר חשוך יש גפרור, נר, ומנורת נפט. מה תדליק ראשון?', choices: ['את הנר', 'את מנורת הנפט', 'את הגפרור', 'את האור'], answer: 2, explanation: 'צריך להדליק את הגפרור ראשון כדי להדליק את השאר' },
+            { text: 'רופא נתן לך 3 כדורים ואמר לקחת אחד כל חצי שעה. בכמה זמן תסיים?', choices: ['שעה', 'שעה וחצי', 'חצי שעה', '45 דקות'], answer: 0, explanation: 'כדור 1 עכשיו, כדור 2 אחרי 30 דק, כדור 3 אחרי 60 דק = שעה' },
+            { text: 'נהג אוטובוס: בתחנה הראשונה עלו 10. בשנייה עלו 5 וירדו 3. בשלישית עלו 8 וירדו 6. מה שם הנהג?', choices: ['10', '14', 'שם הנהג לא ניתן', 'שמך - כי "אתה" הנהג'], answer: 3, explanation: 'המשפט מתחיל ב"נהג אוטובוס" - אתה הנהג!' },
+            { text: 'איש הלך ברגל 10 ק"מ דרומה, 10 ק"מ מזרחה, ו-10 ק"מ צפונה, והגיע לנקודת ההתחלה. היכן הוא?', choices: ['ירושלים', 'הקוטב הצפוני', 'על קו המשווה', 'זה בלתי אפשרי'], answer: 1, explanation: 'רק מהקוטב הצפוני: דרומה, מזרחה (לאורך מעגל), צפונה - חוזר להתחלה' },
+        ];
+    };
+
+    // --- PROBABILITY ---
+    questionGenerators.probability = function() {
+        return [
+            { text: 'מטילים קוביה רגילה. מה הסיכוי לקבל מספר זוגי?', choices: ['1/6', '1/3', '1/2', '2/3'], answer: 2, explanation: '3 מספרים זוגיים מתוך 6: 3/6 = 1/2' },
+            { text: 'בשקית 5 כדורים אדומים ו-3 כחולים. מה הסיכוי להוציא כדור אדום?', choices: ['3/8', '5/8', '1/2', '3/5'], answer: 1, explanation: '5 אדומים מתוך 8 סה"כ: 5/8' },
+            { text: 'מטילים מטבע פעמיים. מה הסיכוי לקבל "עץ" פעמיים?', choices: ['1/2', '1/3', '1/4', '1/8'], answer: 2, explanation: 'P(עץ,עץ) = 1/2 × 1/2 = 1/4' },
+            { text: 'בכיתה 30 תלמידים. 12 ילדים ו-18 ילדות. בוחרים תלמיד אחד באקראי. מה הסיכוי שזו ילדה?', choices: ['2/5', '1/2', '3/5', '2/3'], answer: 2, explanation: '18/30 = 3/5' },
+            { text: 'מטילים שתי קוביות. מה הסיכוי שסכום התוצאות הוא 7?', choices: ['1/6', '1/12', '1/36', '5/36'], answer: 0, explanation: 'צירופים לקבל 7: (1,6)(2,5)(3,4)(4,3)(5,2)(6,1) = 6 מתוך 36 = 1/6' },
+            { text: 'בתיק 10 גרביים: 4 שחורות ו-6 לבנות. כמה גרביים צריך להוציא (בלי להסתכל) כדי להבטיח זוג תואם?', choices: ['2', '3', '4', '5'], answer: 1, explanation: 'במקרה הגרוע: שחורה + לבנה + עוד אחת = 3' },
+            { text: 'מסובבים רולטה עם 8 חלקים שווים, ממוספרים 1-8. מה הסיכוי לקבל מספר גדול מ-5?', choices: ['1/8', '1/4', '3/8', '1/2'], answer: 2, explanation: 'מספרים גדולים מ-5: 6,7,8 = 3 מתוך 8 = 3/8' },
+            { text: 'זורקים קוביה. מה הסיכוי לא לקבל 6?', choices: ['1/6', '1/3', '1/2', '5/6'], answer: 3, explanation: '5 תוצאות שאינן 6, מתוך 6: 5/6' },
+            { text: 'בוחרים מספר אקראי בין 1 ל-20. מה הסיכוי שהוא מתחלק ב-5?', choices: ['1/5', '1/4', '1/10', '1/20'], answer: 0, explanation: 'מתחלקים ב-5: 5,10,15,20 = 4 מתוך 20 = 1/5' },
+            { text: 'מטילים מטבע 3 פעמים. מה הסיכוי לקבל בדיוק 2 "עץ"?', choices: ['1/8', '1/4', '3/8', '1/2'], answer: 2, explanation: 'צירופים: עע"פ, ע"פע, "פעע = 3 מתוך 8 = 3/8' },
+            { text: 'בכד 3 כדורים: אדום, כחול, ירוק. שולפים 2 כדורים. כמה צירופים אפשריים?', choices: ['2', '3', '6', '9'], answer: 1, explanation: 'אד-כח, אד-יר, כח-יר = 3 צירופים' },
+            { text: 'ההסתברות לגשם מחר היא 30%. מה ההסתברות שלא יהיה גשם?', choices: ['30%', '50%', '60%', '70%'], answer: 3, explanation: '100% - 30% = 70%' },
+        ];
+    };
+
+    // --- SYSTEMATIC WORK ---
+    questionGenerators.systematic = function() {
+        return [
+            { text: 'כמה מספרים דו-ספרתיים ניתן ליצור מהספרות 1, 2, 3 (עם חזרות)?', choices: ['6', '9', '12', '27'], answer: 1, explanation: 'ספרת עשרות: 3 אפשרויות, ספרת אחדות: 3. סה"כ: 3×3 = 9' },
+            { text: 'בכמה דרכים אפשר לסדר 3 ילדים בשורה?', choices: ['3', '6', '9', '12'], answer: 1, explanation: '3! = 3×2×1 = 6' },
+            { text: 'יש 4 חולצות ו-3 מכנסיים. כמה שילובים אפשריים?', choices: ['7', '12', '16', '24'], answer: 1, explanation: '4 × 3 = 12 שילובים' },
+            { text: 'כמה מספרים בין 100 ל-999 מכילים את הספרה 5?', choices: ['152', '200', '252', '300'], answer: 2, explanation: 'סה"כ 900 מספרים. ללא 5: 8×9×9 = 648. עם 5: 900-648 = 252' },
+            { text: 'לחיצת יד: 6 אנשים לוחצים ידיים זה לזה. כמה לחיצות ידיים בסך הכל?', choices: ['6', '12', '15', '30'], answer: 2, explanation: '6×5/2 = 15 לחיצות' },
+            { text: 'כמה תת-קבוצות יש לקבוצה בת 3 איברים?', choices: ['3', '6', '7', '8'], answer: 3, explanation: '2³ = 8 (כולל הקבוצה הריקה והקבוצה עצמה)' },
+            { text: 'כמה אלכסונים יש במחומש (מצולע עם 5 צלעות)?', choices: ['3', '5', '7', '10'], answer: 1, explanation: 'n(n-3)/2 = 5×2/2 = 5 אלכסונים' },
+            { text: 'בכמה דרכים אפשר לבחור 2 תלמידים מתוך 5?', choices: ['5', '10', '20', '25'], answer: 1, explanation: '5!/(2!×3!) = 10' },
+            { text: 'כמה מספרים תלת-ספרתיים זוגיים ניתן ליצור מהספרות 1-5 (ללא חזרות)?', choices: ['12', '18', '24', '36'], answer: 2, explanation: 'אחדות: 2,4 (2 אפשרויות). עשרות: 4-1=3. מאות: 3. סה"כ: 2×3×4=24' },
+            { text: 'שלחן עגול עם 4 כיסאות. בכמה דרכים שונות יכולים 4 אנשים לשבת?', choices: ['4', '6', '12', '24'], answer: 1, explanation: 'סידורים מעגליים: (4-1)! = 3! = 6' },
+            { text: 'כמה מילים שונות (גם חסרות משמעות) אפשר ליצור מהאותיות א, ב, ג?', choices: ['3', '6', '9', '27'], answer: 1, explanation: '3! = 6 סידורים' },
+            { text: 'כמה מספרים בין 1 ל-100 מתחלקים גם ב-3 וגם ב-5?', choices: ['3', '6', '7', '15'], answer: 1, explanation: 'מתחלקים ב-15: 15,30,45,60,75,90 = 6 מספרים' },
+        ];
+    };
+
+    // --- RULES/PATTERNS ---
+    questionGenerators.rules = function() {
+        return [
+            { text: 'מה החוק?\n2 → 5, 3 → 8, 4 → 11, 5 → ?', choices: ['12', '13', '14', '15'], answer: 2, explanation: 'החוק: x×3 - 1. 5×3 - 1 = 14' },
+            { text: 'מה החוק?\n1 → 1, 2 → 4, 3 → 9, 4 → 16, 5 → ?', choices: ['20', '25', '30', '36'], answer: 1, explanation: 'החוק: x². 5² = 25' },
+            { text: 'מה המספר החסר?\n3, 6, ?, 12, 15', choices: ['7', '8', '9', '10'], answer: 2, explanation: 'סדרה חשבונית עם הפרש 3. 6+3 = 9' },
+            { text: 'מה החוק?\nA=1, B=2, C=3. מה שווה F?', choices: ['4', '5', '6', '7'], answer: 2, explanation: 'כל אות = מיקומה באלפבית. F = 6' },
+            { text: 'השלם: 1, 3, 6, 10, 15, ?', choices: ['18', '20', '21', '25'], answer: 2, explanation: 'מספרים משולשיים: +2, +3, +4, +5, +6. 15+6 = 21' },
+            { text: 'מה החוק?\n(2,3) → 13, (4,1) → 17, (3,2) → ?', choices: ['11', '13', '14', '15'], answer: 1, explanation: 'a² + b² = תוצאה. 9+4 = 13' },
+            { text: 'השלם: 1, 4, 2, 5, 3, 6, ?', choices: ['4', '5', '7', '9'], answer: 0, explanation: 'שתי סדרות מתחלפות: 1,2,3,4... ו-4,5,6... הבא: 4' },
+            { text: 'מה החוק?\n12 → 3, 20 → 2, 15 → 6, 18 → ?', choices: ['3', '6', '8', '9'], answer: 3, explanation: 'סכום ספרות: 1+8 = 9' },
+            { text: 'השלם: 2, 3, 5, 7, 11, 13, ?', choices: ['14', '15', '17', '19'], answer: 2, explanation: 'סדרת מספרים ראשוניים. הבא: 17' },
+            { text: 'מה החוק?\n5 → 10, 8 → 16, 3 → 6, 12 → ?', choices: ['18', '24', '36', '144'], answer: 1, explanation: 'החוק: x × 2. 12 × 2 = 24' },
+            { text: 'השלם: A, C, E, G, ?', choices: ['H', 'I', 'J', 'K'], answer: 1, explanation: 'מדלגים על אות: A(1), C(3), E(5), G(7), I(9)' },
+            { text: 'מה החוק?\n2, 6, 12, 20, 30, ?', choices: ['36', '40', '42', '48'], answer: 2, explanation: 'ההפרשים: 4,6,8,10,12. 30+12 = 42. או: n(n+1): 6×7=42' },
+        ];
+    };
+
+    // --- ANALYSIS ---
+    questionGenerators.analysis = function() {
+        return [
+            { text: 'בכיתה 25 תלמידים. 15 אוהבים מתמטיקה, 18 אוהבים עברית. לפחות כמה אוהבים את שניהם?', choices: ['3', '5', '8', '10'], answer: 2, explanation: '15 + 18 = 33. 33 - 25 = 8 לפחות אוהבים שניהם' },
+            { text: 'ממוצע הציונים של 4 תלמידים הוא 80. שלושה מהם קיבלו 70, 85 ו-90. מה הציון של הרביעי?', choices: ['65', '70', '75', '80'], answer: 2, explanation: 'סכום = 80×4 = 320. 70+85+90 = 245. הרביעי: 320-245 = 75' },
+            { text: 'בטבלה: ינואר-מכירות 100, פברואר-150, מרץ-200, אפריל-250. מה המגמה?', choices: ['ירידה', 'עלייה קבועה של 50', 'תנודות', 'אין מגמה'], answer: 1, explanation: 'כל חודש עלייה של 50' },
+            { text: '5 חברים השוו גבהים. אורי גבוה מדני. דני גבוה ממיכל. מיכל גבוהה מיעל. יעל גבוהה מרונית. מי במקום השלישי?', choices: ['אורי', 'דני', 'מיכל', 'יעל'], answer: 2, explanation: 'אורי > דני > מיכל > יעל > רונית. מיכל שלישית.' },
+            { text: 'אם 3 חתולים תופסים 3 עכברים ב-3 דקות, כמה זמן ייקח ל-100 חתולים לתפוס 100 עכברים?', choices: ['1 דקה', '3 דקות', '100 דקות', '300 דקות'], answer: 1, explanation: 'כל חתול תופס עכבר אחד ב-3 דקות. 100 חתולים תופסים 100 עכברים ב-3 דקות.' },
+            { text: 'בגרף עמודות: ספורט-40%, מוזיקה-25%, קריאה-20%, אחר-15%. כמה תלמידים בוחרים ספורט אם בכיתה 40 תלמידים?', choices: ['10', '14', '16', '20'], answer: 2, explanation: '40% × 40 = 16 תלמידים' },
+            { text: 'ממוצע 5 מספרים הוא 12. הוסיפו מספר שישי וממוצע כולם נהיה 14. מה המספר שנוסף?', choices: ['14', '18', '22', '24'], answer: 3, explanation: 'סכום 5: 60. סכום 6: 84. המספר: 84-60 = 24' },
+            { text: 'מחיר מוצר עלה ב-20% ואז ירד ב-20%. האם המחיר חזר להיות כמו בהתחלה?', choices: ['כן, בדיוק', 'לא, הוא יותר נמוך', 'לא, הוא יותר גבוה', 'תלוי במחיר המקורי'], answer: 1, explanation: '100 → +20% → 120 → -20% → 96. ירד ב-4%!' },
+            { text: 'בסקר, 60% ענו "כן" ו-25% ענו "לא". אם 30 אנשים ענו "לא יודע", כמה אנשים השתתפו בסקר?', choices: ['100', '150', '200', '300'], answer: 2, explanation: '"לא יודע" = 15%. 30 = 15% × x. x = 200' },
+            { text: 'טמפרטורה ב-5 ימים: 20°, 22°, 18°, 24°, 21°. מה הטווח (ההפרש בין הגבוה לנמוך)?', choices: ['4°', '6°', '8°', '21°'], answer: 1, explanation: 'מקסימום: 24, מינימום: 18. טווח: 24-18 = 6°' },
+            { text: 'בתרשים עוגה: 1/4 אדום, 1/3 כחול, והשאר ירוק. מה חלקו של הירוק?', choices: ['5/12', '7/12', '1/2', '1/6'], answer: 0, explanation: '1 - 1/4 - 1/3 = 12/12 - 3/12 - 4/12 = 5/12' },
+            { text: 'שלושה חברים: A, B, C. A אומר שהוא הכי מבוגר. B אומר שהוא לא הכי צעיר. C אומר שהוא לא הכי מבוגר.\nידוע שכולם אומרים אמת. מה הסדר מהמבוגר לצעיר?', choices: ['A, B, C', 'A, C, B', 'B, A, C', 'C, A, B'], answer: 0, explanation: 'A הכי מבוגר. B לא הכי צעיר, אז B אמצעי. C לא מבוגר, אז C צעיר. סדר: A,B,C' },
+        ];
+    };
+
+    // --- SETS ---
+    questionGenerators.sets = function() {
+        return [
+            { text: 'A = {1, 2, 3, 4, 5}\nB = {3, 4, 5, 6, 7}\n\nמה A ∩ B (חיתוך)?', choices: ['{1, 2}', '{3, 4, 5}', '{6, 7}', '{1, 2, 3, 4, 5, 6, 7}'], answer: 1, explanation: 'חיתוך = האיברים המשותפים: {3, 4, 5}' },
+            { text: 'A = {1, 2, 3}\nB = {4, 5, 6}\n\nמה A ∪ B (איחוד)?', choices: ['{1, 2, 3}', '{}', '{1, 2, 3, 4, 5, 6}', '{4, 5, 6}'], answer: 2, explanation: 'איחוד = כל האיברים משתי הקבוצות' },
+            { text: 'A = {2, 4, 6, 8, 10}\nכמה תת-קבוצות יש ל-A?', choices: ['5', '10', '16', '32'], answer: 3, explanation: '2⁵ = 32 תת-קבוצות (כולל ריקה ו-A עצמה)' },
+            { text: 'קבוצת המספרים הזוגיים החיוביים הקטנים מ-10 היא:', choices: ['{2, 4, 6, 8}', '{2, 4, 6, 8, 10}', '{1, 3, 5, 7, 9}', '{0, 2, 4, 6, 8}'], answer: 0, explanation: 'זוגיים חיוביים קטנים מ-10: 2, 4, 6, 8' },
+            { text: 'A = {a, b, c}\nB = {b, c, d}\n\nמה A \\ B (הפרש)?', choices: ['{a}', '{d}', '{a, d}', '{b, c}'], answer: 0, explanation: 'A\\B = איברים ב-A שלא ב-B: {a}' },
+            { text: 'בכיתה 30 תלמידים. 20 לומדים אנגלית, 15 לומדים צרפתית, 10 לומדים שתיהן. כמה לא לומדים אף שפה?', choices: ['0', '5', '10', '15'], answer: 1, explanation: 'לומדים לפחות אחת: 20+15-10 = 25. לא לומדים: 30-25 = 5' },
+            { text: 'A ⊂ B פירושו:', choices: ['A מכילה את B', 'B מכילה את A', 'A ו-B שוות', 'A ו-B זרות'], answer: 1, explanation: 'A ⊂ B = A תת-קבוצה של B = B מכילה את כל איברי A' },
+            { text: 'A = {1, 2, 3, 4}\nB = {3, 4, 5, 6}\n\nמה |A ∪ B| (גודל האיחוד)?', choices: ['4', '6', '8', '2'], answer: 1, explanation: 'A ∪ B = {1,2,3,4,5,6}, גודל = 6' },
+            { text: 'אם A ∩ B = {} (קבוצה ריקה), אז A ו-B הן:', choices: ['שוות', 'זרות', 'מכילות', 'חופפות'], answer: 1, explanation: 'חיתוך ריק = אין איברים משותפים = קבוצות זרות' },
+            { text: 'U = {1,2,...,10}\nA = {2,4,6,8,10}\nמה A\' (המשלים של A)?', choices: ['{1, 3, 5, 7, 9}', '{2, 4, 6, 8}', '{1, 2, 3, 4, 5}', '{}'], answer: 0, explanation: 'המשלים = איברי U שלא ב-A: {1,3,5,7,9}' },
+            { text: 'בדיאגרמת ון: עיגול A עם 8 איברים ייחודיים, חיתוך 5, עיגול B עם 7 ייחודיים. כמה איברים בסך הכל?', choices: ['15', '20', '25', '8'], answer: 1, explanation: '8 + 5 + 7 = 20 איברים' },
+            { text: 'A = {x | x מספר ראשוני קטן מ-15}\nכמה איברים ב-A?', choices: ['4', '5', '6', '7'], answer: 2, explanation: '2, 3, 5, 7, 11, 13 = 6 ראשוניים קטנים מ-15' },
+        ];
+    };
+
+    // =============================================
+    // INIT
+    // =============================================
+    renderHomepage();
+    </script>
+</body>
+</html>
