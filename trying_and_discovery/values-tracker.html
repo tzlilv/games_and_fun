@@ -428,6 +428,111 @@
         .empty-state p + p { font-size: 0.8rem; margin-top: 6px; }
 
         .hint { font-size: 0.78rem; color: #b2bec3; margin-bottom: 14px; }
+
+        /* Manage values */
+        .card-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-title-row .card-title { margin-bottom: 0; }
+
+        .btn-manage {
+            background: none;
+            border: 1px solid #e8e4f8;
+            color: #6c5ce7;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn-manage:hover { background: #f8f6ff; border-color: #6c5ce7; }
+        .btn-manage.open  { background: #6c5ce7; color: white; border-color: #6c5ce7; }
+
+        .manage-panel {
+            display: none;
+            background: #faf9ff;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+            border: 1px dashed #d0c8f5;
+        }
+
+        .manage-panel.open { display: block; }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-bottom: 12px;
+        }
+
+        .val-chip {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: white;
+            border: 1.5px solid #d0c8f5;
+            border-radius: 20px;
+            padding: 4px 10px 4px 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #2d3436;
+        }
+
+        .chip-del {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #b2bec3;
+            font-size: 0.85rem;
+            line-height: 1;
+            padding: 0;
+            transition: color 0.15s;
+        }
+
+        .chip-del:hover { color: #e17055; }
+
+        .add-val-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-val-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1.5px solid #d0c8f5;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-family: inherit;
+            outline: none;
+            background: white;
+            direction: rtl;
+        }
+
+        .add-val-row input:focus { border-color: #6c5ce7; }
+
+        .btn-add-val {
+            padding: 8px 16px;
+            background: #6c5ce7;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-add-val:hover { background: #5a4bd1; }
     </style>
 </head>
 <body>
@@ -474,7 +579,20 @@
         </div>
 
         <div class="card">
-            <div class="card-title">💎 כמה כל ערך היה נוכח היום?</div>
+            <div class="card-title-row">
+                <div class="card-title">💎 כמה כל ערך היה נוכח היום?</div>
+                <button class="btn-manage" id="btn-manage" onclick="toggleManage()">⚙️ ערוך</button>
+            </div>
+
+            <div class="manage-panel" id="manage-panel">
+                <div class="chips" id="value-chips"></div>
+                <div class="add-val-row">
+                    <input type="text" id="new-value-input" placeholder="הוסף ערך חדש..." maxlength="20"
+                           onkeydown="if(event.key==='Enter') addValue()">
+                    <button class="btn-add-val" onclick="addValue()">+ הוסף</button>
+                </div>
+            </div>
+
             <p class="hint">0 = כלל לא &nbsp;·&nbsp; 5 = מאוד נוכח</p>
             <div class="values-grid" id="values-grid"></div>
         </div>
@@ -497,7 +615,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-    const VALUES = [
+    const DEFAULT_VALUES = [
         'תקשורת', 'מגע', 'אהבה', 'תנועה', 'חופש', 'ספונטניות',
         'גילוי', 'זרימה', 'יחד', 'צחוק', 'הומור', 'קלילות',
         'אחריות', 'אמון', 'חריצות', 'אקספלורציה', 'לימוד',
@@ -506,6 +624,7 @@
     ];
 
     const DATA_KEY = 'values_tracker_v1';
+    const VALS_KEY = 'values_tracker_values';
 
     // ── Storage ──────────────────────────────────────────────
     function loadData() {
@@ -516,6 +635,19 @@
     function saveData(data) {
         localStorage.setItem(DATA_KEY, JSON.stringify(data));
     }
+
+    function loadValues() {
+        try {
+            const stored = JSON.parse(localStorage.getItem(VALS_KEY));
+            return Array.isArray(stored) && stored.length ? stored : [...DEFAULT_VALUES];
+        } catch { return [...DEFAULT_VALUES]; }
+    }
+
+    function saveValues() {
+        localStorage.setItem(VALS_KEY, JSON.stringify(VALUES));
+    }
+
+    let VALUES = loadValues();
 
     // ── Toast ─────────────────────────────────────────────────
     function showToast(msg) {
@@ -555,6 +687,47 @@
         if (r >= 6) return '#0984e3';
         if (r >= 4) return '#fdcb6e';
         return '#e17055';
+    }
+
+    // ── Manage values ─────────────────────────────────────────
+    function toggleManage() {
+        const panel = document.getElementById('manage-panel');
+        const btn   = document.getElementById('btn-manage');
+        const open  = panel.classList.toggle('open');
+        btn.classList.toggle('open', open);
+        btn.textContent = open ? '✕ סגור' : '⚙️ ערוך';
+        if (open) renderChips();
+    }
+
+    function renderChips() {
+        document.getElementById('value-chips').innerHTML = VALUES.map(v => `
+            <div class="val-chip">
+                <button class="chip-del" onclick="removeValue('${v}')" title="מחק">×</button>
+                <span>${v}</span>
+            </div>
+        `).join('');
+    }
+
+    function addValue() {
+        const input = document.getElementById('new-value-input');
+        const name  = input.value.trim();
+        if (!name) { showToast('⚠️ הכנס שם ערך'); return; }
+        if (VALUES.includes(name)) { showToast('⚠️ הערך כבר קיים'); return; }
+        VALUES.push(name);
+        saveValues();
+        input.value = '';
+        renderChips();
+        buildValuesGrid();
+        showToast(`✅ "${name}" נוסף`);
+    }
+
+    function removeValue(name) {
+        if (VALUES.length <= 1) { showToast('⚠️ חייב להישאר לפחות ערך אחד'); return; }
+        VALUES = VALUES.filter(v => v !== name);
+        saveValues();
+        renderChips();
+        buildValuesGrid();
+        showToast(`🗑️ "${name}" הוסר`);
     }
 
     // ── Values grid ───────────────────────────────────────────
@@ -599,8 +772,10 @@
         onRatingChange(entry.rating);
         document.getElementById('day-note').value = entry.note || '';
         VALUES.forEach(v => {
+            const el = document.querySelector(`#vi-${v} input`);
+            if (!el) return;
             const s = entry.values[v] ?? 0;
-            document.querySelector(`#vi-${v} input`).value = s;
+            el.value = s;
             onValueChange(v, s);
         });
     }
@@ -610,7 +785,9 @@
         onRatingChange(5);
         document.getElementById('day-note').value = '';
         VALUES.forEach(v => {
-            document.querySelector(`#vi-${v} input`).value = 0;
+            const el = document.querySelector(`#vi-${v} input`);
+            if (!el) return;
+            el.value = 0;
             onValueChange(v, 0);
         });
         initDate();
@@ -746,9 +923,13 @@
         const sorted   = [...data].sort((a, b) => a.date.localeCompare(b.date));
         const avgRating = (data.reduce((s, e) => s + e.rating, 0) / data.length).toFixed(1);
 
-        // Per-value averages
+        // Per-value averages — union of current VALUES + any values in history
+        const allValueNames = [...new Set([
+            ...VALUES,
+            ...data.flatMap(e => Object.keys(e.values))
+        ])];
         const valueAvgs = {};
-        VALUES.forEach(v => {
+        allValueNames.forEach(v => {
             valueAvgs[v] = data.reduce((s, e) => s + (e.values[v] ?? 0), 0) / data.length;
         });
         const sortedVals = Object.entries(valueAvgs).sort(([,a],[,b]) => b - a);
@@ -767,7 +948,7 @@
         const highDays = data.filter(e => e.rating >= 7);
         const corrScores = {};
         if (highDays.length > 0) {
-            VALUES.forEach(v => {
+            allValueNames.forEach(v => {
                 corrScores[v] = highDays.reduce((s, e) => s + (e.values[v] ?? 0), 0) / highDays.length;
             });
         }
@@ -915,12 +1096,13 @@
     function exportCSV() {
         const data = loadData();
         if (!data.length) return;
-        const header = ['date', 'rating', 'note', ...VALUES].join(',');
+        const allCols = [...new Set([...VALUES, ...data.flatMap(e => Object.keys(e.values))])];
+        const header  = ['date', 'rating', 'note', ...allCols].join(',');
         const rows = data.map(e => [
             e.date,
             e.rating,
             `"${(e.note || '').replace(/"/g, '""')}"`,
-            ...VALUES.map(v => e.values[v] ?? 0)
+            ...allCols.map(v => e.values[v] ?? 0)
         ].join(','));
         const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
         downloadBlob(blob, 'values-tracker.csv');
