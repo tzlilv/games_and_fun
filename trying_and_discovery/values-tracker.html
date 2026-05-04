@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מעקב ערכים יומי</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f0edf8;
+            color: #2d3436;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            padding: 20px 24px 24px;
+            box-shadow: 0 4px 20px rgba(108, 92, 231, 0.3);
+        }
+
+        .header h1 { font-size: 1.6rem; font-weight: 800; }
+        .header p { font-size: 0.85rem; opacity: 0.85; margin-top: 4px; }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #ece8f8;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 14px 8px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: #636e72;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .tab:hover { color: #6c5ce7; background: #f8f6ff; }
+        .tab.active { color: #6c5ce7; border-bottom-color: #6c5ce7; font-weight: 700; }
+
+        .content {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px 16px 60px;
+        }
+
+        .section-hidden { display: none !important; }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #6c5ce7;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group:last-child { margin-bottom: 0; }
+
+        .form-group label {
+            display: block;
+            font-size: 0.83rem;
+            font-weight: 600;
+            color: #636e72;
+            margin-bottom: 8px;
+        }
+
+        .form-group input[type="date"],
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e8e4f8;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+            direction: ltr;
+            color: #2d3436;
+            background: #faf9ff;
+        }
+
+        .form-group input[type="date"]:focus,
+        .form-group textarea:focus { border-color: #6c5ce7; background: white; }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+            direction: rtl;
+        }
+
+        .rating-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .rating-num {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #6c5ce7;
+            min-width: 36px;
+            text-align: center;
+            line-height: 1;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 7px;
+            border-radius: 4px;
+            background: #e8e4f8;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #6c5ce7;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(108, 92, 231, 0.4);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        .range-limits {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: #b2bec3;
+            margin-top: 4px;
+            padding: 0 2px;
+        }
+
+        /* Values grid */
+        .values-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        @media (max-width: 480px) { .values-grid { grid-template-columns: 1fr; } }
+
+        .value-item {
+            background: #faf9ff;
+            border-radius: 12px;
+            padding: 11px 13px;
+            border: 2px solid transparent;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .value-item.scored { border-color: rgba(108, 92, 231, 0.3); }
+
+        .value-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .value-name { font-size: 0.88rem; font-weight: 600; color: #2d3436; }
+        .value-score-badge {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: white;
+            background: #6c5ce7;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .value-score-badge.visible { opacity: 1; }
+
+        .value-item input[type="range"] { height: 5px; }
+        .value-item input[type="range"]::-webkit-slider-thumb { width: 17px; height: 17px; }
+
+        .dots {
+            display: flex;
+            gap: 5px;
+            margin-top: 7px;
+        }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #e0dbf5;
+            transition: background 0.15s, transform 0.15s;
+        }
+
+        .dot.lit {
+            background: #6c5ce7;
+            transform: scale(1.15);
+        }
+
+        /* Button */
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.35);
+            letter-spacing: 0.02em;
+        }
+
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108, 92, 231, 0.45); }
+        .btn-primary:active { transform: translateY(0); }
+
+        /* History */
+        .history-item {
+            background: white;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .history-item:hover { box-shadow: 0 4px 16px rgba(108, 92, 231, 0.15); border-color: #e8e4f8; }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .history-date { font-weight: 700; font-size: 0.88rem; color: #2d3436; }
+        .history-note { font-size: 0.82rem; color: #636e72; margin-top: 5px; line-height: 1.4; }
+
+        .history-rating {
+            font-size: 1.5rem;
+            font-weight: 900;
+            min-width: 40px;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .history-rating-label { font-size: 0.65rem; color: #b2bec3; text-align: center; margin-top: 2px; }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .tag {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.73rem;
+            font-weight: 600;
+        }
+
+        .tag-high { background: #d4f8ef; color: #00b894; }
+        .tag-mid  { background: #e8e4f8; color: #6c5ce7; }
+
+        .history-details {
+            display: none;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid #f0edf8;
+        }
+
+        .history-details.open { display: block; }
+
+        .vbar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .vbar-label { font-size: 0.78rem; min-width: 75px; text-align: right; color: #2d3436; }
+
+        .vbar {
+            flex: 1;
+            height: 7px;
+            background: #f0edf8;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .vbar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #a29bfe, #6c5ce7);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .vbar-score { font-size: 0.73rem; color: #6c5ce7; font-weight: 700; min-width: 16px; }
+
+        .btn-delete {
+            background: none;
+            border: 1px solid #fab1b1;
+            color: #e17055;
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-family: inherit;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-delete:hover { background: #fff0ee; }
+
+        /* Analysis */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 14px;
+            padding: 16px 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .stat-val { font-size: 1.9rem; font-weight: 900; color: #6c5ce7; line-height: 1; }
+        .stat-lbl { font-size: 0.72rem; color: #b2bec3; margin-top: 5px; }
+
+        .chart-container { position: relative; height: 240px; margin: 10px 0 4px; }
+
+        .insight-box {
+            border-radius: 10px;
+            padding: 13px 15px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .insight-box strong { display: block; margin-bottom: 4px; font-size: 0.88rem; }
+        .insight-box.top { background: #f0fdf8; border-right: 4px solid #00b894; }
+        .insight-box.low { background: #fdf8f0; border-right: 4px solid #fdcb6e; }
+        .insight-box.corr { background: #f8f6ff; border-right: 4px solid #6c5ce7; }
+
+        .export-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .btn-export {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e8e4f8;
+            background: white;
+            color: #6c5ce7;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn-export:hover { background: #f8f6ff; border-color: #6c5ce7; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #2d3436;
+            color: white;
+            padding: 11px 26px;
+            border-radius: 30px;
+            font-size: 0.88rem;
+            z-index: 1000;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* Empty state */
+        .empty-state { text-align: center; padding: 60px 20px; color: #b2bec3; }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 14px; }
+        .empty-state p { font-size: 0.9rem; }
+        .empty-state p + p { font-size: 0.8rem; margin-top: 6px; }
+
+        .hint { font-size: 0.78rem; color: #b2bec3; margin-bottom: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>✨ מעקב ערכים יומי</h1>
+    <p>תעד את היום שלך, עקוב אחר מה שמניע אותך</p>
+</div>
+
+<div class="tabs">
+    <div class="tab active" data-tab="today" onclick="showTab('today')">📝 היום</div>
+    <div class="tab" data-tab="history" onclick="showTab('history')">📅 היסטוריה</div>
+    <div class="tab" data-tab="analysis" onclick="showTab('analysis')">📊 ניתוח</div>
+</div>
+
+<div class="content">
+
+    <!-- ===== TODAY ===== -->
+    <div id="tab-today">
+
+        <div class="card">
+            <div class="card-title">📅 פרטי היום</div>
+
+            <div class="form-group">
+                <label>תאריך</label>
+                <input type="date" id="entry-date">
+            </div>
+
+            <div class="form-group">
+                <label>דירוג כללי של היום</label>
+                <div class="rating-row">
+                    <span class="rating-num" id="rating-num">5</span>
+                    <input type="range" id="day-rating" min="1" max="10" value="5"
+                           oninput="onRatingChange(this.value)">
+                    <span style="font-size:0.8rem;color:#b2bec3;">/10</span>
+                </div>
+                <div class="range-limits"><span>גרוע</span><span>מעולה</span></div>
+            </div>
+
+            <div class="form-group">
+                <label>משפט אחד על היום</label>
+                <textarea id="day-note" placeholder="מה היה בולט היום? איך הרגשת?"></textarea>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">💎 כמה כל ערך היה נוכח היום?</div>
+            <p class="hint">0 = כלל לא &nbsp;·&nbsp; 5 = מאוד נוכח</p>
+            <div class="values-grid" id="values-grid"></div>
+        </div>
+
+        <button class="btn-primary" onclick="saveEntry()">💾 שמור את היום</button>
+    </div>
+
+    <!-- ===== HISTORY ===== -->
+    <div id="tab-history" class="section-hidden">
+        <div id="history-list"></div>
+    </div>
+
+    <!-- ===== ANALYSIS ===== -->
+    <div id="tab-analysis" class="section-hidden">
+        <div id="analysis-content"></div>
+    </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const VALUES = [
+        'תקשורת', 'מגע', 'אהבה', 'תנועה', 'חופש', 'ספונטניות',
+        'גילוי', 'זרימה', 'יחד', 'צחוק', 'הומור', 'קלילות',
+        'אחריות', 'אמון', 'חריצות', 'אקספלורציה', 'לימוד',
+        'התפתחות', 'כיף', 'עומק', 'עזרה', 'תמיכה', 'שייכות',
+        'שגעון', 'אקשן', 'חברות'
+    ];
+
+    const DATA_KEY = 'values_tracker_v1';
+
+    // ── Storage ──────────────────────────────────────────────
+    function loadData() {
+        try { return JSON.parse(localStorage.getItem(DATA_KEY)) || []; }
+        catch { return []; }
+    }
+
+    function saveData(data) {
+        localStorage.setItem(DATA_KEY, JSON.stringify(data));
+    }
+
+    // ── Toast ─────────────────────────────────────────────────
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    // ── Tabs ──────────────────────────────────────────────────
+    function showTab(name) {
+        ['today', 'history', 'analysis'].forEach(t => {
+            document.getElementById('tab-' + t).classList.toggle('section-hidden', t !== name);
+            document.querySelector(`[data-tab="${t}"]`).classList.toggle('active', t === name);
+        });
+        if (name === 'history')  renderHistory();
+        if (name === 'analysis') renderAnalysis();
+    }
+
+    // ── Init form ─────────────────────────────────────────────
+    function initDate() {
+        document.getElementById('entry-date').value = todayISO();
+    }
+
+    function todayISO() {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    function onRatingChange(v) {
+        const el = document.getElementById('rating-num');
+        el.textContent = v;
+        el.style.color = ratingColor(parseInt(v));
+    }
+
+    function ratingColor(r) {
+        if (r >= 8) return '#00b894';
+        if (r >= 6) return '#0984e3';
+        if (r >= 4) return '#fdcb6e';
+        return '#e17055';
+    }
+
+    // ── Values grid ───────────────────────────────────────────
+    function buildValuesGrid() {
+        const grid = document.getElementById('values-grid');
+        grid.innerHTML = VALUES.map(v => `
+            <div class="value-item" id="vi-${v}">
+                <div class="value-header">
+                    <span class="value-name">${v}</span>
+                    <span class="value-score-badge" id="vsb-${v}">0</span>
+                </div>
+                <input type="range" min="0" max="5" value="0"
+                       oninput="onValueChange('${v}', this.value)">
+                <div class="dots">
+                    ${[1,2,3,4,5].map(i => `<div class="dot" id="dot-${v}-${i}"></div>`).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function onValueChange(name, raw) {
+        const score = parseInt(raw);
+        const badge = document.getElementById('vsb-' + name);
+        badge.textContent = score;
+        badge.classList.toggle('visible', score > 0);
+        document.getElementById('vi-' + name).classList.toggle('scored', score > 0);
+        for (let i = 1; i <= 5; i++) {
+            document.getElementById(`dot-${name}-${i}`).classList.toggle('lit', i <= score);
+        }
+    }
+
+    function getFormValues() {
+        const scores = {};
+        VALUES.forEach(v => {
+            scores[v] = parseInt(document.querySelector(`#vi-${v} input`).value);
+        });
+        return scores;
+    }
+
+    function setFormValues(entry) {
+        document.getElementById('day-rating').value = entry.rating;
+        onRatingChange(entry.rating);
+        document.getElementById('day-note').value = entry.note || '';
+        VALUES.forEach(v => {
+            const s = entry.values[v] ?? 0;
+            document.querySelector(`#vi-${v} input`).value = s;
+            onValueChange(v, s);
+        });
+    }
+
+    function resetForm() {
+        document.getElementById('day-rating').value = 5;
+        onRatingChange(5);
+        document.getElementById('day-note').value = '';
+        VALUES.forEach(v => {
+            document.querySelector(`#vi-${v} input`).value = 0;
+            onValueChange(v, 0);
+        });
+        initDate();
+    }
+
+    // ── Save ──────────────────────────────────────────────────
+    function saveEntry() {
+        const date   = document.getElementById('entry-date').value;
+        const rating = parseInt(document.getElementById('day-rating').value);
+        const note   = document.getElementById('day-note').value.trim();
+        const values = getFormValues();
+
+        if (!date) { showToast('⚠️ בחר תאריך'); return; }
+
+        const data = loadData();
+        const idx  = data.findIndex(e => e.date === date);
+        const entry = { date, rating, note, values, savedAt: new Date().toISOString() };
+
+        if (idx >= 0) { data[idx] = entry; showToast('✅ הרשומה עודכנה!'); }
+        else          { data.push(entry);   showToast('✅ היום נשמר!'); }
+
+        data.sort((a, b) => b.date.localeCompare(a.date));
+        saveData(data);
+        resetForm();
+    }
+
+    // ── History ───────────────────────────────────────────────
+    function formatDate(ds) {
+        return new Date(ds + 'T00:00:00').toLocaleDateString('he-IL', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        });
+    }
+
+    function renderHistory() {
+        const data = loadData();
+        const container = document.getElementById('history-list');
+
+        if (!data.length) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">📭</div>
+                    <p>עדיין אין רשומות</p>
+                    <p>התחל לתעד את הימים שלך!</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = data.map((entry, idx) => {
+            const sorted = Object.entries(entry.values).sort(([,a],[,b]) => b - a);
+            const highTags = sorted.filter(([,s]) => s >= 4).slice(0, 6);
+            const midTags  = sorted.filter(([,s]) => s === 3).slice(0, 3);
+
+            return `
+            <div class="history-item" onclick="toggleDetails(${idx})">
+                <div class="history-header">
+                    <div style="flex:1">
+                        <div class="history-date">${formatDate(entry.date)}</div>
+                        ${entry.note ? `<div class="history-note">${entry.note}</div>` : ''}
+                    </div>
+                    <div>
+                        <div class="history-rating" style="color:${ratingColor(entry.rating)}">${entry.rating}</div>
+                        <div class="history-rating-label">מתוך 10</div>
+                    </div>
+                </div>
+                <div class="tags">
+                    ${highTags.map(([v]) => `<span class="tag tag-high">${v}</span>`).join('')}
+                    ${midTags.map(([v])  => `<span class="tag tag-mid">${v}</span>`).join('')}
+                </div>
+                <div class="history-details" id="details-${idx}">
+                    ${sorted.map(([v, s]) => `
+                        <div class="vbar-row">
+                            <span class="vbar-label">${v}</span>
+                            <div class="vbar"><div class="vbar-fill" style="width:${s * 20}%"></div></div>
+                            <span class="vbar-score">${s}</span>
+                        </div>
+                    `).join('')}
+                    <div style="display:flex;gap:10px;margin-top:12px">
+                        <button class="btn-delete" onclick="deleteEntry('${entry.date}', event)">🗑️ מחק</button>
+                        <button class="btn-delete" style="border-color:#a29bfe;color:#6c5ce7"
+                                onclick="editEntry('${entry.date}', event)">✏️ ערוך</button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function toggleDetails(idx) {
+        document.getElementById('details-' + idx).classList.toggle('open');
+    }
+
+    function deleteEntry(date, ev) {
+        ev.stopPropagation();
+        if (!confirm('למחוק את הרשומה?')) return;
+        saveData(loadData().filter(e => e.date !== date));
+        renderHistory();
+        showToast('🗑️ נמחק');
+    }
+
+    function editEntry(date, ev) {
+        ev.stopPropagation();
+        const entry = loadData().find(e => e.date === date);
+        if (!entry) return;
+        document.getElementById('entry-date').value = entry.date;
+        setFormValues(entry);
+        showTab('today');
+        showToast('✏️ ערוך ושמור מחדש');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── Analysis ──────────────────────────────────────────────
+    let chartInstances = [];
+
+    function destroyCharts() {
+        chartInstances.forEach(c => c.destroy());
+        chartInstances = [];
+    }
+
+    function renderAnalysis() {
+        const data = loadData();
+        const container = document.getElementById('analysis-content');
+        destroyCharts();
+
+        if (data.length < 2) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">📈</div>
+                    <p>נדרשות לפחות 2 רשומות לניתוח</p>
+                    <p>המשך לתעד ותחזור לכאן!</p>
+                </div>`;
+            return;
+        }
+
+        const sorted   = [...data].sort((a, b) => a.date.localeCompare(b.date));
+        const avgRating = (data.reduce((s, e) => s + e.rating, 0) / data.length).toFixed(1);
+
+        // Per-value averages
+        const valueAvgs = {};
+        VALUES.forEach(v => {
+            valueAvgs[v] = data.reduce((s, e) => s + (e.values[v] ?? 0), 0) / data.length;
+        });
+        const sortedVals = Object.entries(valueAvgs).sort(([,a],[,b]) => b - a);
+
+        // Streak
+        let streak = 0;
+        const today = todayISO();
+        for (let i = 0; i < data.length; i++) {
+            const exp = new Date(today + 'T00:00:00');
+            exp.setDate(exp.getDate() - i);
+            if (data[i].date === exp.toISOString().split('T')[0]) streak++;
+            else break;
+        }
+
+        // Correlations: which values correlate most with high-rated days
+        const highDays = data.filter(e => e.rating >= 7);
+        const corrScores = {};
+        if (highDays.length > 0) {
+            VALUES.forEach(v => {
+                corrScores[v] = highDays.reduce((s, e) => s + (e.values[v] ?? 0), 0) / highDays.length;
+            });
+        }
+        const topCorr = Object.entries(corrScores).sort(([,a],[,b]) => b - a).slice(0, 5);
+
+        const top5   = sortedVals.slice(0, 5);
+        const low5   = sortedVals.slice(-5).reverse();
+
+        container.innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-val">${data.length}</div>
+                    <div class="stat-lbl">ימים מתועדים</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val" style="color:${ratingColor(parseFloat(avgRating))}">${avgRating}</div>
+                    <div class="stat-lbl">ממוצע יומי</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val">${streak}</div>
+                    <div class="stat-lbl">רצף נוכחי</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📈 מגמת דירוג יומי</div>
+                <div class="chart-container"><canvas id="ratingChart"></canvas></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🔝 ממוצע נוכחות לכל ערך</div>
+                <p class="hint">לאורך כל הימים המתועדים</p>
+                ${sortedVals.map(([v, avg]) => `
+                    <div class="vbar-row">
+                        <span class="vbar-label">${v}</span>
+                        <div class="vbar"><div class="vbar-fill" style="width:${avg * 20}%"></div></div>
+                        <span class="vbar-score">${avg.toFixed(1)}</span>
+                    </div>
+                `).join('')}
+            </div>
+
+            <div class="card">
+                <div class="card-title">🕸️ פרופיל ערכים</div>
+                <div class="chart-container"><canvas id="radarChart"></canvas></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">💡 תובנות</div>
+                <div class="insight-box top">
+                    <strong>🌟 הערכים הנוכחים ביותר</strong>
+                    ${top5.map(([v, a]) => `${v} <b>(${a.toFixed(1)})</b>`).join(' &nbsp;·&nbsp; ')}
+                </div>
+                <div class="insight-box low">
+                    <strong>🌱 ערכים עם מרחב לצמיחה</strong>
+                    ${low5.map(([v, a]) => `${v} <b>(${a.toFixed(1)})</b>`).join(' &nbsp;·&nbsp; ')}
+                </div>
+                ${highDays.length >= 2 ? `
+                <div class="insight-box corr">
+                    <strong>✨ ערכים שקושרים לימים טובים (דירוג ≥ 7)</strong>
+                    ${topCorr.map(([v, a]) => `${v} <b>(${a.toFixed(1)})</b>`).join(' &nbsp;·&nbsp; ')}
+                </div>` : ''}
+            </div>
+
+            <div class="card">
+                <div class="card-title">📤 ייצוא נתונים</div>
+                <div class="export-row">
+                    <button class="btn-export" onclick="exportJSON()">⬇️ JSON</button>
+                    <button class="btn-export" onclick="exportCSV()">⬇️ CSV</button>
+                </div>
+            </div>
+        `;
+
+        requestAnimationFrame(() => {
+            // Line chart
+            const rCtx = document.getElementById('ratingChart').getContext('2d');
+            chartInstances.push(new Chart(rCtx, {
+                type: 'line',
+                data: {
+                    labels: sorted.map(e => {
+                        const d = new Date(e.date + 'T00:00:00');
+                        return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
+                    }),
+                    datasets: [{
+                        data: sorted.map(e => e.rating),
+                        borderColor: '#6c5ce7',
+                        backgroundColor: 'rgba(108,92,231,0.1)',
+                        borderWidth: 2.5,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: sorted.map(e => ratingColor(e.rating)),
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: 0, max: 10, grid: { color: '#f0edf8' }, ticks: { stepSize: 2 } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false }, tooltip: { rtl: true } }
+                }
+            }));
+
+            // Radar chart — top 12 values
+            const radarVals = sortedVals.slice(0, 12);
+            const rCtx2 = document.getElementById('radarChart').getContext('2d');
+            chartInstances.push(new Chart(rCtx2, {
+                type: 'radar',
+                data: {
+                    labels: radarVals.map(([v]) => v),
+                    datasets: [{
+                        label: 'ממוצע',
+                        data: radarVals.map(([,a]) => a),
+                        borderColor: '#6c5ce7',
+                        backgroundColor: 'rgba(108,92,231,0.15)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#6c5ce7',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            min: 0, max: 5,
+                            ticks: { stepSize: 1, font: { size: 10 } },
+                            pointLabels: { font: { size: 11 } },
+                            grid: { color: '#e8e4f8' }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            }));
+        });
+    }
+
+    // ── Export ────────────────────────────────────────────────
+    function exportJSON() {
+        const blob = new Blob([JSON.stringify(loadData(), null, 2)], { type: 'application/json' });
+        downloadBlob(blob, 'values-tracker.json');
+    }
+
+    function exportCSV() {
+        const data = loadData();
+        if (!data.length) return;
+        const header = ['date', 'rating', 'note', ...VALUES].join(',');
+        const rows = data.map(e => [
+            e.date,
+            e.rating,
+            `"${(e.note || '').replace(/"/g, '""')}"`,
+            ...VALUES.map(v => e.values[v] ?? 0)
+        ].join(','));
+        const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        downloadBlob(blob, 'values-tracker.csv');
+    }
+
+    function downloadBlob(blob, name) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast('⬇️ מוריד...');
+    }
+
+    // ── Boot ──────────────────────────────────────────────────
+    initDate();
+    buildValuesGrid();
+
+    // Auto-load today's entry if it exists
+    (() => {
+        const existing = loadData().find(e => e.date === todayISO());
+        if (existing) setFormValues(existing);
+    })();
+</script>
+</body>
+</html>
