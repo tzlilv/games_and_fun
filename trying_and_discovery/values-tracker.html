@@ -442,6 +442,67 @@
 
         .hint { font-size: 0.78rem; color: #b2bec3; margin-bottom: 14px; }
 
+        /* Intentions */
+        .intention-row {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e0f4fb;
+        }
+
+        .intention-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        .intention-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .intention-val-name {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #0d2137;
+            min-width: 80px;
+        }
+
+        .intention-avg {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #0077b6;
+            background: #caf0f8;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .intention-textarea {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1.5px solid #b3dff0;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+            resize: none;
+            background: #f8fcff;
+            color: #0d2137;
+            direction: rtl;
+            transition: border-color 0.2s, background 0.2s;
+            min-height: 60px;
+        }
+
+        .intention-textarea:focus { border-color: #0077b6; background: white; }
+        .intention-textarea.saved { border-color: #00b894; }
+
+        .intention-saved-note {
+            font-size: 0.72rem;
+            color: #00b894;
+            margin-top: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .intention-saved-note.show { opacity: 1; }
+
         /* Manage values */
         .card-title-row {
             display: flex;
@@ -636,8 +697,9 @@
         'שגעון', 'אקשן', 'חברות'
     ];
 
-    const DATA_KEY = 'values_tracker_v1';
-    const VALS_KEY = 'values_tracker_values';
+    const DATA_KEY   = 'values_tracker_v1';
+    const VALS_KEY   = 'values_tracker_values';
+    const INTENT_KEY = 'values_tracker_intentions';
 
     // ── Storage ──────────────────────────────────────────────
     function loadData() {
@@ -661,6 +723,34 @@
     }
 
     let VALUES = loadValues();
+
+    // ── Intentions storage ────────────────────────────────────
+    function loadIntentions() {
+        try { return JSON.parse(localStorage.getItem(INTENT_KEY)) || {}; }
+        catch { return {}; }
+    }
+
+    function saveIntention(name, text) {
+        const all = loadIntentions();
+        if (text.trim()) all[name] = text.trim();
+        else delete all[name];
+        localStorage.setItem(INTENT_KEY, JSON.stringify(all));
+    }
+
+    const intentionTimers = {};
+    function onIntentionInput(name, text, rowId) {
+        clearTimeout(intentionTimers[name]);
+        intentionTimers[name] = setTimeout(() => {
+            saveIntention(name, text);
+            const note = document.getElementById('isaved-' + rowId);
+            if (note) {
+                note.classList.add('show');
+                setTimeout(() => note.classList.remove('show'), 1800);
+            }
+            const ta = document.getElementById('ita-' + rowId);
+            if (ta) ta.classList.toggle('saved', !!text.trim());
+        }, 600);
+    }
 
     // ── Toast ─────────────────────────────────────────────────
     function showToast(msg) {
@@ -970,6 +1060,10 @@
         const top5   = sortedVals.slice(0, 5);
         const low5   = sortedVals.slice(-5).reverse();
 
+        const intentions = loadIntentions();
+        // Values sorted low→high for the intentions card
+        const sortedLowToHigh = [...sortedVals].reverse();
+
         container.innerHTML = `
             <div class="stats-grid">
                 <div class="stat-card">
@@ -1016,13 +1110,42 @@
                 </div>
                 <div class="insight-box low">
                     <strong>🌱 ערכים עם מרחב לצמיחה</strong>
-                    ${low5.map(([v, a]) => `${v} <b>(${a.toFixed(1)})</b>`).join(' &nbsp;·&nbsp; ')}
+                    <div style="margin-bottom:6px">${low5.map(([v, a]) => `${v} <b>(${a.toFixed(1)})</b>`).join(' &nbsp;·&nbsp; ')}</div>
+                    ${low5.filter(([v]) => intentions[v]).map(([v]) => `
+                        <div style="margin-top:6px;font-size:0.82rem;color:#555;border-right:3px solid #fdcb6e;padding-right:8px">
+                            <b>${v}:</b> ${intentions[v]}
+                        </div>`).join('')}
                 </div>
                 ${highDays.length >= 2 ? `
                 <div class="insight-box corr">
                     <strong>✨ ערכים שקושרים לימים טובים (דירוג ≥ 7)</strong>
                     ${topCorr.map(([v, a]) => `${v} <b>(${a.toFixed(1)})</b>`).join(' &nbsp;·&nbsp; ')}
                 </div>` : ''}
+            </div>
+
+            <div class="card">
+                <div class="card-title">🎯 כוונות — מה יעזור לכל ערך להיות יותר נוכח?</div>
+                <p class="hint">מסודר מהנמוך לגבוה · נשמר אוטומטית</p>
+                ${sortedLowToHigh.map(([v, avg], idx) => {
+                    const rowId = 'ir' + idx;
+                    const saved = intentions[v] || '';
+                    return `
+                    <div class="intention-row">
+                        <div class="intention-header">
+                            <span class="intention-val-name">${v}</span>
+                            <span class="intention-avg">ממוצע ${avg.toFixed(1)}</span>
+                            <div class="vbar" style="flex:1;max-width:120px">
+                                <div class="vbar-fill" style="width:${avg * 20}%"></div>
+                            </div>
+                        </div>
+                        <textarea class="intention-textarea ${saved ? 'saved' : ''}"
+                                  id="ita-${rowId}"
+                                  placeholder="מה יכול לעזור ל${v} להיות יותר נוכח?"
+                                  oninput="onIntentionInput('${v}', this.value, '${rowId}')"
+                        >${saved}</textarea>
+                        <div class="intention-saved-note" id="isaved-${rowId}">✓ נשמר</div>
+                    </div>`;
+                }).join('')}
             </div>
 
             <div class="card">
